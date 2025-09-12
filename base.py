@@ -55,15 +55,15 @@ class Game(Entity):
         self.deltaTime: float = 0.0
         self.displaySize: list[int] = displaySize
         self.display: pg.surface.Surface = pg.display.set_mode(self.displaySize)
-        self.__state: GameState = initialState
+        self._state: GameState = initialState
 
-        if self.__state == None:
-            self.__state = GameState()
+        if self._state == None:
+            self._state = GameState()
         #end if
         
         self.renderScale: list[float] =[
-            float(self.__state.renderSize[0]) / self.displaySize[0]
-            ,float(self.__state.renderSize[1]) / self.displaySize[1]
+            float(self._state.renderSize[0]) / self.displaySize[0]
+            ,float(self._state.renderSize[1]) / self.displaySize[1]
         ]
         self.running: bool = True 
         
@@ -77,13 +77,13 @@ class Game(Entity):
             #end if
         #end for
 
-        if isinstance(self.__state,GameState):
-            self.__state.keysDown = pg.key.get_pressed()
-            self.__state.mouseDown = pg.mouse.get_pressed()
-            self.__state.mousePos = pg.mouse.get_pos()
-            self.__state.mousePos = [
-                 self.__state.mousePos[0] * self.renderScale[0]
-                 ,self.__state.mousePos[1] * self.renderScale[1]
+        if isinstance(self._state,GameState):
+            self._state.keysDown = pg.key.get_pressed()
+            self._state.mouseDown = pg.mouse.get_pressed()
+            self._state.mousePos = pg.mouse.get_pos()
+            self._state.mousePos = [
+                 self._state.mousePos[0] * self.renderScale[0]
+                 ,self._state.mousePos[1] * self.renderScale[1]
             ]
         #end if
         
@@ -91,10 +91,10 @@ class Game(Entity):
     #end handleEvents
 
     def render(self) -> None:
-        if isinstance(self.__state,GameState):
-            self.__state.render()
+        if isinstance(self._state,GameState):
+            self._state.render()
             pg.transform.scale(
-                self.__state.renderBuffer
+                self._state.renderBuffer
                 ,self.displaySize
                 ,self.display
             )
@@ -106,9 +106,9 @@ class Game(Entity):
     #end render
 
     def update(self) -> None:
-        if isinstance(self.__state,GameState):
-            self.__state.deltaTime = self.deltaTime
-            self.__state.update()
+        if isinstance(self._state,GameState):
+            self._state.deltaTime = self.deltaTime
+            self._state.update()
         #end if
 
         return
@@ -122,14 +122,14 @@ class Game(Entity):
 
     def switchState(self, otherState: GameState) -> None:
         if isinstance(otherState, GameState):
-            self.__state = otherState
+            self._state = otherState
         #end if
 
         return
     #end switchState
     
     def run(self) -> None:
-        if isinstance(self.__state,GameState):
+        if isinstance(self._state,GameState):
             while self.running == True:
                 self.handleEvents()
                 self.update()
