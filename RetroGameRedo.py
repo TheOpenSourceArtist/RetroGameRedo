@@ -6,19 +6,32 @@ class RetroRedo(Game):
     def __init__(self) -> None:
         super().__init__('Retro Redo',[800,600])
         self.states: list[GameState] = [
-            Breakout.BreakoutState()
+            #Break Out States
+            Breakout.Menu()
+            ,Breakout.BreakoutState()
+            ,Breakout.EndGame()
+            
+            #Snake States
             ,Snake.SnakeState()
         ]
-        self.switchState(self.states[0])
+        self.stateIndex: int = 1
+        self.switchState(self.states[self.stateIndex])
 
         return
     #end __init__
 
     def update(self) -> None:
         super().update()
-
-        if self._state.keysDown[pg.K_SPACE]:
-            self.switchState(self.states[1])
+        
+        if self.keysDown[pg.K_ESCAPE]:
+            self.running = False
+        #end if
+        
+        if self._state.name == 'breakout' and self._state.exitCode == 1:
+            self.switchState(self.states[0])
+        elif self._state.name == 'breakout' and self._state.exitCode == 2:
+            self.switchState(self.states[2])
+        #end if
 
         return
     #end update

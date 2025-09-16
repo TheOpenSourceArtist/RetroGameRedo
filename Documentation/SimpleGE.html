@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en-us">
+	<head>
+		<title>Simple Game Engine</title>
+		<meta charset="utf-8">
+		<style>
+			code{
+				white-space: pre;
+			}
+			p{
+				margin-left: 32pt;
+			}
+		</style>
+	</head>
+	<body>
+		<h1>Simple Game Engine</h1>
+		
+		<h3>Contents</h3>
+		<ul>
+			<li>
+				base.py
+				
+				<ul>
+					<li><a href="#Entity">Entity</a></li>
+					<li><a href="#GameState">GameState</a></li>
+					<li><a href="#Game">Game</a></li>
+				</ul>
+			</li>
+			
+			<li>
+				renderable.py
+				
+				<ul>
+					<li><a href="#Renderable">Renderable(Entity)</a></li>
+					<li><a href="#Geometry">Geometry(Renderable)</a></li>
+					<li><a href="#RGBSurface">RGBSurface(Renderable)</a></li>
+					<li><a href="#Text">Text(Renderable)</a></li>
+				</ul>
+			</li>
+			<li><a href="#Utils">utils.py</a></li>
+			<li>SimpleGE.py</li>
+		</ul>
+		
+		<h2>Getting Started</h2>
+		<p>
+			SimpleGE is an extension of Pygame that is intended to make it simple to
+			create games that consist of multiple game states and modular. To start a
+			SimpleGE project, copy the contents of SimpleGE into a folder and create a
+			new python script in the same folder to hold the game code. A very simple 
+			script might look like this:
+		</p>
+		
+		<p><code>
+from SimpleGE import *
+
+def main() -> None:
+	myGame: Game = Game(
+		name = 'My SimpleGE Game'
+		,displaySize = [800,600]
+		,initialState = None
+	)
+	
+	myGame.run()
+	
+	return
+#end main
+
+if __name__ == '__main__':
+	main()
+#end if
+		</code></p>
+		
+		<p>
+			This script imports all the contents of SimpleGE.py, creates a Game object,
+			and calls the game object's run() function. This game will not do anything,
+			because it only has the default GameState. Before we get into GameStates,
+			let's look at the contents of the Game class itself
+		</p>
+		
+		<h2 id="Game">Game Class</h2>
+		
+		<p>
+			The Game class will control the flow of the game, switching between states
+			and rendering to the display. The Game class hold several important member
+			variables and functions:
+		</p>
+		
+		<h3>Member Variables</h3>
+		<ul>
+			<li>fps: int - How many frame will be rendred in a second</li>
+        	<li>clock: Pygame.time.Clock - The Clock object to sync to the FPS</li>
+        	<li>deltaTime: float - The time in milliseconds since the last frame</li>
+        	<li>displaySize: list[int] - The size in pixels of the display window</li>
+        	<li>display: pg.surface.Surface - The display window</li>
+        	<li>renderScale: list[float] - How much the GameState render buffer is scaled</li>
+        	<li>keysDown: list[bool] - List of keys that are pressed this frame</li>
+        	<li>mouseDown: list[bool] - List of mouse buttons pressed this frame</li>
+        	<li>mousePos: list[int] - Position of mouse cursor, scaled to the render scale</li>
+        	<li>_state: GameState - The current GameState object</li>
+       		<li>running: bool - Is the game running</li>
+		</ul>
+		
+		<h3>Member Functions</h3>
+		<ul>
+			<li>__init__(name:str = '', displaySize: list[int] = [800,600], initialState: GameState = None) -> None - 
+        		Game constructor function. Sets up the display, clock, name, and initial GameState.
+        	</li>
+			<li>handleEvents() -> None - 
+        		Handles Display events and polls user inputs.
+        		The polled inputs (keys, mouse buttons, and mouse position) are
+        		then passed to the Game's _state object
+        	</li>
+        	<li>render() -> None - 
+        		Call the _state object's render function. Then,
+        		scale the _state object's renderBuffer by the renderScale, and
+        		blit the scaled renderBuffer to the Game's display
+        	</li>
+        	<li>update(self) -> None - 
+        		Pass the Game's deltaTime to the _state object
+        		and call the _state's update function
+        	</li>
+        	<li>syncFPS(self) -> None - 
+        		Slow down game execution to sync with its frame rate and
+        		store the deltaTime value (in ms) between the current frame and
+        		the last frame
+        	</li>
+        	<li>switchState(self, otherState: GameState) -> None - 
+        		Set the _state object to a new GameState and refresh the
+        		renderScale
+        	</li>
+        	<li>run() -> None - 
+        		Calls the member functions in order handleEvents(), update(),
+        		render(), syncFPS() and loops indefinitely while running
+        		is True. Deinitializes Pygame when running is set to False
+        	</li>
+		</ul>
+		
+		<h2 id="GameState">GameState Class</h2>
+		
+		<p>
+			The GameState class is where the logic for individual game states are defined. GameStates have their own render buffer and inputs but the Game class will update the GameState's input and render its render buffer to the Game's display. The most important part of the GameState is the Entity list. This ordered list tells the GameState which Entities to update and render. 
+		</p>
+		
+		<h3>Member Variables</h3>
+		<ul>
+			<li>renderSize: list[int] - The size in pixels of the renderBuffer</li>
+        	<li>renderBuffer: pg.surface.Surface - The buffer onto which the GameState renderable data is written</li>
+        	<li>keysDown: list[bool] - Polled list of key states (True or False)</li>
+        	<li>mouseDown: list[bool] - Polled list of mouse button states (True or False)</li>
+        	<li>mousePos: list[int] - Mouse cursor position scaled to the renderSize (Because the Game's display and the GameState's renderBuffer can by different sizes).</li>
+        	<li>entities: list[Entity] - An ordered list of Entity objects. For accessing specific objects, it is recommended to give them unique values in their "name" variable.</li>
+        	<li>deltaTime: float - Time in milliseconds since the last frame. Useful for physics simulations.</li>
+        	<li>exitCode: int - A code used to signal the Game that this state is done. Exit code will be 0 when GameState is active. An exit code greater than 0 will indicate a state change</li>
+		</ul>
+		
+		<h3>Member Functions</h3>
+		<ul>
+			<li>__init__(name:str = '', renderSize: list[int] = [800,600], entities: list[Entity] = list()) -> None - 
+        		GameState constructor function. Sets up the render buffer and entities list.
+        	</li>
+		</ul>
+		
+		<p>
+			GameStates are faily basic in their construction. They do not override any of their parent class' functions or add any new ones. Simply put, a GameState is an Entity that has a list of Entities to update and render. The Game object will call the GameState's update and render functions once per frame and pass in the polled input data (keyboard and mouse).
+		</p>
+		
+		<h2 id="Entity">Entity Class</h2>
+		
+		<p>
+			There is not much to say about the Entity class. It is the base call for all objects in the SimpleGE library. This class is created mainly to ensure that every object has an update and render function. 
+		</p>
+		
+		<h3>Member Variables</h3>
+		<ul>
+			<li>name: str - A name or id given to the Entity</li>
+        	<li>active: bool - In general, active should mean that the Entity should be updated once per frame, but by default this variable has no effect.</li>
+        	<li>visible: bool - In general, visible should mean that the Entity should be rendered once per frame, but by default this variable has no effect.</li>
+		</ul>
+		
+		<h3>Member Functions</h3>
+		<ul>
+			<li>__init__(name:str = '') -> None - 
+        		Entity constructor function. Sets up the name, active bool and visible bool.
+        	</li>
+			<li>update() -> None - 
+        		Does nothing by default and should be over written by derived classes.
+        	</li>
+        	<li>render() -> None - 
+        		Does nothing by default and should be over written by derived classes.
+        	</li>
+		</ul>
+		
+		<h2 id="Renderable">Renderable Class</h2>
+		
+		<p>
+			The Renderable class is an extension of Entity. Renderable objects differ from Entity objects in one subtle but very important way: Renderable update functions expect the user to pass in a delta time value (float) and Renderable render functions expect a buffer to be rendered onto (a Pygame Surface). The classes that derive from Renderable will all be rendered in different ways, but requiring the user to supply the render buffer ensures that they can still be rendered nonetheless.
+		</p>
+		
+		<h3>Member Functions</h3>
+		<ul>
+			<li>__init__(name:str = 'renderable') -> None - 
+        		Renderable constructor function.
+        	</li>
+			<li>update(deltaTime: float) -> None - 
+        		Does nothing by default and should be over written by derived classes.
+        	</li>
+        	<li>render(buffer: pg.surface.Surface) -> None - 
+        		Does nothing by default and should be over written by derived classes.
+        	</li>
+		</ul>
+		
+		<h2 id="Geometry">Geometry Class</h2>
+		
+		<p>
+			Geometry is a Renderable that consists of a center and an ordered list of verticies. Both the center and the verticies are Pygame Vector2 objects. By default, Geometry vertices are arranged to form a regular polygon with a given radius and number of vertices, but the user can access and modify the vertices.
+		</p>
+		
+		<h3>Member Variables</h3>
+		<ul>
+			<li>center: pg.math.Vector2 - A vector that has an origin at (0,0) and has a direction and magnitude that point to the center of the vertices.</li>
+        	<li>orientation: float - The angle in degrees of the visual rotation of the vertices</li>
+        	<li>numVerts: int - The Number of vertices</li>
+        	<li>radius: int - The default displacement of the vertices from the center</li>
+        	<li>verts: list[pg.math.Vector2] - An ordered list of Vector2 vertices</li>
+        	<li>lineThickness: int - The thickness of the line that is draw between each of the vertices. 0 will completely fill the polygon and anything greater than 0 will just draw lines.</li>
+        	<li>color: list[int] - The color of the drawn lines</li>
+		</ul>
+		
+		<h3>Member Functions</h3>
+		<ul>
+			<li>__init__(<br>
+				&nbsp;&nbsp;&nbsp;center: pg.math.Vector2|list[int] = pg.math.Vector2(0,0)<br>
+        		&nbsp;&nbsp;&nbsp;,numVerts: int = 3<br>
+        		&nbsp;&nbsp;&nbsp;,radius: int = 1<br>
+        		&nbsp;&nbsp;&nbsp;,lineThickness: int = 1<br>
+        		&nbsp;&nbsp;&nbsp;,color: list[int] = (255,255,255)<br>
+        		&nbsp;&nbsp;&nbsp;,name: str = 'geometry'<br>
+        		) -> None - <br>
+        			Geometry constructor function. Sets up the name, center and vertices of the regular polygon.
+        	</li>
+		</ul>
+		
+		<h2 id="RGBSurface">RGBSurface Class</h2>
+		
+		<p>
+			The RGBSurface class is an extension of the Renderable class that has Pygame Surface as a member variable.
+		</p>
+
+		<h3>Member Variables</h3>
+		<ul>
+			<li>img: pg.surface.Surface - The Pygame Surface that holds all the image data</li>
+        	<li>rect: pg.Rect - The Pygame Rect that holds the size and position of the image data.</li>
+		</ul>
+		
+		<h3>Member Functions</h3>
+		<ul>
+			<li>__init__(<br>
+				&nbsp;&nbsp;&nbsp;img: pg.surface.Surface|str = None<br>
+        		&nbsp;&nbsp;&nbsp;,topleft: list[int] = [0,0]<br>
+        		&nbsp;&nbsp;&nbsp;,name: str = 'rgbsurface'<br>
+        		) -> None - <br>
+        			RGBSurface constructor function. Sets up the name and image data. 
+        	</li>
+		</ul>
+		
+		<h2 id="Text">Text Class</h2>
+		
+		<p>
+			The Text class is an extension of the Renderable class that has Pygame Font object as a member variable.
+		</p>
+		
+		<h3>Member Variables</h3>
+		<ul>
+			<li>text: str - The text literal that will be rendered</li>
+        	<li>size: int - Size in pixels of the font</li>
+        	<li>color: list[int] - Color of the outline of the text</li>
+        	<li>font: pg.font.Font - The Pygame Font object used to render the text</li>
+        	<li>img: pg.surface.Surface - The Pygame surface that holds the rendered text image data</li>
+        	<li>rect: pg.Rect - The size and position of the image data</li>
+		</ul>
+
+		<h3>Member Functions</h3>
+		<ul>
+			<li>__init__(text: str = '', size: int = 12, color: list[int] = (255,255,255), name: str = 'text') -> None - <br>
+        		Text constructor function. Sets up the name and image data. 
+        	</li>
+		</ul>
+		
+		<h2 id="Utils">Utils Module</h2>
+		
+		<p>
+			The utils module is a place to store utility functions that don't belong to a specific class but have general functionality.
+		</p>
+
+		<h3>Functions</h3>
+		<ul>
+			<li>distSquared() -> float - Calculate the squared distance between two points (either lists of floats or Pygame Vector2's</li>
+			<li>dist() -> float - Calculate the distance between two points (either lists of floats or Pygame Vector2's</li>
+		</ul>
+	</body>
+</html>

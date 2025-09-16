@@ -134,6 +134,8 @@ class BreakoutState(GameState):
         super().__init__('breakout', [800,600])
         
         #set up blocks
+        self.entities = list()
+        
         self.numBlocks: list[int] = [10,4]
         self.remainingBlocks: int = self.numBlocks[0] * self.numBlocks[1]
         self.blockSize: list[int] = [int(self.renderSize[0] / self.numBlocks[0]), int((self.renderSize[1] * 0.2) / self.numBlocks[1])]
@@ -203,13 +205,61 @@ class BreakoutState(GameState):
             #end if
         #end for
                 
-        if self.entities[self.ballIndex].numLives < 0 or self.remainingBlocks == 0:
-            self.__init__()
+        if self.entities[self.ballIndex].numLives < 0:
+            self.exitCode = 1
+        elif self.remainingBlocks == 0:
+            self.exitCode = 2
         #end if
         
         return
     #end update
 #end BreakoutState
+    
+class EndGame(GameState):
+    def __init__(self) -> None:
+        super().__init__('endGame', [800,600])
+        self.entities = list()
+        
+        self.entities.append(Text('End Game State', int(self.renderSize[1] / 10)))
+        
+        return
+    #end __init__
+    
+    def render(self) -> None:
+        self.renderBuffer.fill((0,0,0))
+        
+        for entity in self.entities:
+            if isinstance(entity,Entity):
+                entity.render(self.renderBuffer)
+            #end if
+        #end for
+        
+        return
+    #end render
+#end BreakoutEndGame
+    
+class Menu(GameState):
+    def __init__(self) -> None:
+        super().__init__('menu', [800,600])
+        self.entities = list()
+        
+        self.entities.append(Text('Menu State', int(self.renderSize[1] / 10)))
+        
+        return
+    #end __init__
+    
+    def render(self) -> None:
+        self.renderBuffer.fill((0,0,0))
+        
+        for entity in self.entities:
+            if isinstance(entity,Entity):
+                entity.render(self.renderBuffer)
+            #end if
+        #end for
+        
+        return
+    #end render
+#end BreakoutEndGame
 
 def main() -> None:
     game: Game = Game('Breakout',[800,600],BreakoutState())

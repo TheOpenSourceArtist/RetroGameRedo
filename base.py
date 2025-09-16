@@ -26,7 +26,7 @@ class Entity:
 #end Entity
     
 class GameState(Entity):
-    def __init__(self, name:str = '', renderSize: list[int] = [800,600]) -> None:
+    def __init__(self, name:str = '', renderSize: list[int] = [800,600], entities: list[Entity] = list()) -> None:
         pg.init()
         super().__init__(name)
         
@@ -34,11 +34,12 @@ class GameState(Entity):
         self.renderBuffer: pg.surface.Surface = pg.surface.Surface(
             self.renderSize
         )
+        self.entities: list[Entity] = entities
         self.keysDown: list[bool] = pg.key.get_pressed()
         self.mouseDown: list[bool] = pg.mouse.get_pressed()
         self.mousePos: list[int] = pg.mouse.get_pos()
-        self.entities: list[Entity] = list()
         self.deltaTime: float = 0.0
+        self.exitCode: int = 0
         
         return
     #end __init__
@@ -55,6 +56,9 @@ class Game(Entity):
         self.deltaTime: float = 0.0
         self.displaySize: list[int] = displaySize
         self.display: pg.surface.Surface = pg.display.set_mode(self.displaySize)
+        self.keysDown: list[bool] = pg.key.get_pressed()
+        self.mouseDown: list[bool] = pg.mouse.get_pressed()
+        self.mousePos: list[int] = pg.mouse.get_pos()
         self._state: GameState = initialState
 
         if self._state == None:
@@ -76,15 +80,19 @@ class Game(Entity):
                 self.running = False
             #end if
         #end for
+                
+        self.keysDown = pg.key.get_pressed()
+        self.mouseDown = pg.mouse.get_pressed()
+        self.mousePos = pg.mouse.get_pos()
+        self.mousePos = [
+             self.mousePos[0] * self.renderScale[0]
+             ,self.mousePos[1] * self.renderScale[1]
+        ]
 
         if isinstance(self._state,GameState):
-            self._state.keysDown = pg.key.get_pressed()
-            self._state.mouseDown = pg.mouse.get_pressed()
-            self._state.mousePos = pg.mouse.get_pos()
-            self._state.mousePos = [
-                 self._state.mousePos[0] * self.renderScale[0]
-                 ,self._state.mousePos[1] * self.renderScale[1]
-            ]
+            self._state.keysDown = self.keysDown
+            self._state.mouseDown = self.mouseDown
+            self._state.mousePos = self.mousePos
         #end if
         
         return
@@ -123,20 +131,22 @@ class Game(Entity):
     def switchState(self, otherState: GameState) -> None:
         if isinstance(otherState, GameState):
             self._state = otherState
+            self.renderScale = [
+                float(self._state.renderSize[0]) / self.displaySize[0]
+                ,float(self._state.renderSize[1]) / self.displaySize[1]
+            ]
         #end if
 
         return
     #end switchState
     
     def run(self) -> None:
-        if isinstance(self._state,GameState):
-            while self.running == True:
-                self.handleEvents()
-                self.update()
-                self.render()
-                self.syncFPS()
-            #end while
-        #end if
+        while self.running == True:
+            self.handleEvents()
+            self.update()
+            self.render()
+            self.syncFPS()
+        #end while
 
         pg.quit()
         
