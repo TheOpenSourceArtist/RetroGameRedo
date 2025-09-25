@@ -32,20 +32,24 @@ class Sprite(RGBSurface):
         if self.grounded:
             if self.jumpReady:
                 if keys[pg.K_SPACE]:
+                    #grounded, jump ready, space pressed
                     self.grounded = False
                     self.jumpReady = False
                     self.jumping = True
                 else:
+                    #grounded, jump ready, space not pressed
                     self.grounded = True
                     self.jumpReady = True
                     self.jumping = False
                 #end
             else:
                 if keys[pg.K_SPACE]:
+                    #grounded, jump not ready, space pressed
                     self.grounded = True
                     self.jumpReady = False
                     self.jumping = False
                 else:
+                    #grounded, jump not ready, space not pressed
                     self.grounded = True
                     self.jumpReady = True
                     self.jumping = False
@@ -54,20 +58,24 @@ class Sprite(RGBSurface):
         else:
             if self.jumping:
                 if keys[pg.K_SPACE]:
+                    #not grounded, jumping, space pressed
                     self.grounded = False
                     self.jumpReady = False
                     self.jumping = True
                 else:
+                    #not grounded, jumping, space not pressed
                     self.grounded = False
-                    self.jumpReady = False
+                    self.jumpReady = False #could add double jump here
                     self.jumping = False
                 #end if
             else:
                 if keys[pg.K_SPACE]:
+                    #not grounded, not jumping, space pressed
                     self.grounded = False
                     self.jumpReady = False
                     self.jumping = False
                 else:
+                    #not grounded, not jumping, space not pressed
                     self.grounded = False
                     self.jumpReady = False
                     self.jumping = False
