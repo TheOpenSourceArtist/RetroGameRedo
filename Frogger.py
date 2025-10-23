@@ -3,32 +3,21 @@ from SimpleGE import *
 class FroggerState(GameState):
     def __init__(self) -> None:
         super().__init__('frogger',[800,600])
-
-        self.screenGrid: list[tuple[int]] = []
-        self.cellSize: int = 40
-        self.screenGridSize: list[int] = [
-            int(self.renderSize[0] / self.cellSize)
-            ,int(self.renderSize[1] / self.cellSize)
-        ]        
         
-        for gridY in range(0,self.renderSize[1], self.cellSize):
-            for gridX in range(0,self.renderSize[0], self.cellSize):
-                self.screenGrid.append((gridX,gridY))
-            #end for
-        #end for
+        self.tileCellSize: int = 40
 
         self.grass: RGBSurface = RGBSurface(
-            pg.surface.Surface((self.cellSize,self.cellSize))
+            pg.surface.Surface((self.tileCellSize,self.tileCellSize))
         )
         self.grass.img.fill((0,255,0))
 
         self.road: RGBSurface = RGBSurface(
-            pg.surface.Surface((self.cellSize,self.cellSize))
+            pg.surface.Surface((self.tileCellSize,self.tileCellSize))
         )
         self.road.img.fill((50,50,50))
 
         self.water: RGBSurface = RGBSurface(
-            pg.surface.Surface((self.cellSize,self.cellSize))
+            pg.surface.Surface((self.tileCellSize,self.tileCellSize))
         )
         self.water.img.fill((0,0,255))
         
@@ -38,36 +27,54 @@ class FroggerState(GameState):
             ,self.water
         ]
 
-        self.tileMap: list[int] = [
-            0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-            ,0,0,2,0,0,2,0,0,2,0,0,2,0,0,2,0,0,2,0,0
-            ,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2
-            ,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2
-            ,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2
-            ,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2
-            ,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-            ,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-            ,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
-            ,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
-            ,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
-            ,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
-            ,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
-            ,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-            ,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+        self.tileMap: list[list[int]] = [
+            [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+            ,[0,0,2,0,0,2,0,0,2,0,0,2,0,0,2,0,0,2,0,0]
+            ,[2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2]
+            ,[2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2]
+            ,[2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2]
+            ,[2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2]
+            ,[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+            ,[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+            ,[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+            ,[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+            ,[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+            ,[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+            ,[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+            ,[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+            ,[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
         ]
+        
+        self.tileGrid: list[list[pg.Rect]] = list()
+        self.tileGridSize: list[int] = [
+            len(self.tileMap[0])
+            ,len(self.tileMap)
+        ]
+        
+        for gridY in range(self.tileGridSize[1]):
+            gridRow: list[pg.Rect] = list()
+            
+            for gridX in range(self.tileGridSize[0]):
+                gridRow.append(pg.Rect(
+                    (gridX * self.tileCellSize, gridY * self.tileCellSize)
+                    ,(self.tileCellSize, self.tileCellSize)
+                ))
+            #end for
+            
+            self.tileGrid.append(gridRow)
+        #end for
 
+        self.frogPos: list[int] = [9,13]
         self.frog: Renderable = Geometry(
-            pg.math.Vector2(
-                self.screenGrid[13 * 20 + 9]
-            ) + [self.cellSize / 2,self.cellSize / 2]
+            self.tileGrid[self.frogPos[1]][self.frogPos[0]].center
             ,32
-            ,self.cellSize / 2
+            ,self.tileCellSize / 2
             ,0
             ,(25,100,25)
         )
 
         self.numLives: int = 5
-        self.lives: Text = Text("Lives: %d" % self.numLives,self.cellSize)
+        self.lives: Text = Text("Lives: %d" % self.numLives,self.tileCellSize)
 
         self.entities.append(self.frog)
         self.entities.append(self.lives)
@@ -79,10 +86,10 @@ class FroggerState(GameState):
         self.renderBuffer.fill((0,0,0))
 
         #render tile map
-        for i in range(self.screenGridSize[0] * self.screenGridSize[1]):
-            self.renderBuffer.blit(
-                self.tileSet[self.tileMap[i]].img,self.screenGrid[i]
-            )
+        for tileY in range(self.tileGridSize[1]):
+            for tileX in range(self.tileGridSize[0]):
+                self.renderBuffer.blit(self.tileSet[self.tileMap[tileY][tileX]].img,self.tileGrid[tileY][tileX])
+            #end for
         #end for
 
         #render entity list
@@ -96,8 +103,39 @@ class FroggerState(GameState):
     #end render
     
     def update(self) -> None:
-        if self.mousePressed[2]:
-            print('single press')
+        if pg.K_UP in self.keysPressed:
+            self.frogPos[1] -= 1
+            
+            if self.frogPos[1] < 0:
+                self.frogPos[1] = 0
+            #end if
+        #end if
+                
+        if pg.K_DOWN in self.keysPressed:
+            self.frogPos[1] += 1
+            
+            if self.frogPos[1] >= self.tileGridSize[1]:
+                self.frogPos[1] = self.tileGridSize[1] - 1
+            #end if
+        #end if
+                
+        if pg.K_RIGHT in self.keysPressed:
+            self.frogPos[0] += 1
+            
+            if self.frogPos[0] >= self.tileGridSize[0]:
+                self.frogPos[0] = self.tileGridSize[0] - 1
+            #end if
+        #end if
+                
+        if pg.K_LEFT in self.keysPressed:
+            self.frogPos[0] -= 1
+            
+            if self.frogPos[0] < 0:
+                self.frogPos[0] = 0
+            #end if
+        #end if
+        
+        self.frog.center = self.tileGrid[self.frogPos[1]][self.frogPos[0]].center
         
         return
     #end update

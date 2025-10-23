@@ -36,11 +36,11 @@ class GameState(Entity):
         )
         self.entities: list[Entity] = entities
         self.keysDown: list[bool] = pg.key.get_pressed()
-        self.keysPressed: list[bool] = list()
-        self.keysReleased: list[bool] = list()
+        self.keysPressed: list[int] = list()
+        self.keysReleased: list[int] = list()
         self.mouseDown: list[bool] = pg.mouse.get_pressed()
-        self.mousePressed: list[bool] = list()
-        self.mouseReleased: list[bool] = list()
+        self.mousePressed: list[bool] = list(self.mouseDown)
+        self.mouseReleased: list[bool] = list(self.mouseDown)
         self.mousePos: list[int] = pg.mouse.get_pos()
         self.deltaTime: float = 0.0
         self.exitCode: int = 0
@@ -83,8 +83,8 @@ class Game(Entity):
         self.displaySize: list[int] = displaySize
         self.display: pg.surface.Surface = pg.display.set_mode(self.displaySize)
         self.keysDown: list[bool] = pg.key.get_pressed()
-        self.keysPressed: list[bool] = list(self.keysDown)
-        self.keysReleased: list[bool] = list(self.keysDown)
+        self.keysPressed: list[int] = list()
+        self.keysReleased: list[int] = list()
         self.mouseDown: list[bool] = pg.mouse.get_pressed()
         self.mousePressed: list[bool] = list(self.mouseDown)
         self.mouseReleased: list[bool] = list(self.mouseDown)
@@ -110,9 +110,9 @@ class Game(Entity):
             if event.type == pg.QUIT:
                 self.running = False
             elif event.type == pg.KEYDOWN:
-                self.keysPressed[event.key] = True
+                self.keysPressed.append(event.key)
             elif event.type == pg.KEYUP:
-                self.keysReleased[event.key] = True
+                self.keysReleased.append(event.key)
             elif event.type == pg.MOUSEBUTTONDOWN:
                 self.mousePressed[event.button - 1] = True
             elif event.type == pg.MOUSEBUTTONUP:
@@ -141,8 +141,8 @@ class Game(Entity):
         #end if
         
         #clear the single frame events
-        self.keysPressed = [False for x in self.keysPressed]
-        self.keysReleased = [False for x in self.keysReleased]
+        self.keysPressed = list()
+        self.keysReleased = list()
         self.mousePressed = [False for x in self.mousePressed]
         self.mouseReleased = [False for x in self.mouseReleased]
         
