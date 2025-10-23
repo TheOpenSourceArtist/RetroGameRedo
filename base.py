@@ -14,12 +14,12 @@ class Entity:
         return
     #end __init__
     
-    def render(self) -> None:
+    def render(self, buffer: pg.surface.Surface = None) -> None:
         
         return
     #end render
     
-    def update(self) -> None:
+    def update(self, deltaTime: float = None) -> None:
         
         return
     #end update
@@ -36,13 +36,39 @@ class GameState(Entity):
         )
         self.entities: list[Entity] = entities
         self.keysDown: list[bool] = pg.key.get_pressed()
+        self.keysPressed: list[bool] = list()
+        self.keysReleased: list[bool] = list()
         self.mouseDown: list[bool] = pg.mouse.get_pressed()
+        self.mousePressed: list[bool] = list()
+        self.mouseReleased: list[bool] = list()
         self.mousePos: list[int] = pg.mouse.get_pos()
         self.deltaTime: float = 0.0
         self.exitCode: int = 0
         
         return
     #end __init__
+    
+    def render(self) -> None:
+        self.renderBuffer.fill((0,0,0))
+        
+        for entity in self.entities:
+            if isinstance(entity,Entity):
+                entity.render(self.renderBuffer)
+            #end if
+        #end for
+        
+        return
+    #end render
+    
+    def update(self) -> None:        
+        for entity in self.entities:
+            if isinstance(entity,Entity):
+                entity.update(self.deltaTime)
+            #end if
+        #end for
+        
+        return
+    #end render
 #end GameState
     
 class Game(Entity):
@@ -57,7 +83,11 @@ class Game(Entity):
         self.displaySize: list[int] = displaySize
         self.display: pg.surface.Surface = pg.display.set_mode(self.displaySize)
         self.keysDown: list[bool] = pg.key.get_pressed()
+        self.keysPressed: list[bool] = list(self.keysDown)
+        self.keysReleased: list[bool] = list(self.keysDown)
         self.mouseDown: list[bool] = pg.mouse.get_pressed()
+        self.mousePressed: list[bool] = list(self.mouseDown)
+        self.mouseReleased: list[bool] = list(self.mouseDown)
         self.mousePos: list[int] = pg.mouse.get_pos()
         self._state: GameState = initialState
 
@@ -75,12 +105,22 @@ class Game(Entity):
     #end __init__
 
     def handleEvents(self) -> None:
+        #poll all game events
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 self.running = False
+            elif event.type == pg.KEYDOWN:
+                self.keysPressed[event.key] = True
+            elif event.type == pg.KEYUP:
+                self.keysReleased[event.key] = True
+            elif event.type == pg.MOUSEBUTTONDOWN:
+                self.mousePressed[event.button - 1] = True
+            elif event.type == pg.MOUSEBUTTONUP:
+                self.mouseReleased[event.button - 1] = True
             #end if
         #end for
-                
+        
+        #update inputs
         self.keysDown = pg.key.get_pressed()
         self.mouseDown = pg.mouse.get_pressed()
         self.mousePos = pg.mouse.get_pos()
@@ -89,11 +129,22 @@ class Game(Entity):
              ,self.mousePos[1] * self.renderScale[1]
         ]
 
+        #send updated inputs to game state
         if isinstance(self._state,GameState):
             self._state.keysDown = self.keysDown
+            self._state.keysPressed = self.keysPressed
+            self._state.keysReleased = self.keysReleased
+            self._state.mousePressed = self.mousePressed
+            self._state.mouseReleased = self.mouseReleased
             self._state.mouseDown = self.mouseDown
             self._state.mousePos = self.mousePos
         #end if
+        
+        #clear the single frame events
+        self.keysPressed = [False for x in self.keysPressed]
+        self.keysReleased = [False for x in self.keysReleased]
+        self.mousePressed = [False for x in self.mousePressed]
+        self.mouseReleased = [False for x in self.mouseReleased]
         
         return
     #end handleEvents

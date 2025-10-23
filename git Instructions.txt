@@ -1,0 +1,11 @@
+Pull Origin:
+	git fetch origin
+	git pull origin
+
+Commit and Push:
+	git add .
+	git commit -m "message"
+	git push origin main
+
+Hard Reset:
+	git reset --hard origin/main

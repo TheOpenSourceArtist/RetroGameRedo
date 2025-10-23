@@ -96,6 +96,8 @@ class FroggerState(GameState):
     #end render
     
     def update(self) -> None:
+        if self.mousePressed[2]:
+            print('single press')
         
         return
     #end update

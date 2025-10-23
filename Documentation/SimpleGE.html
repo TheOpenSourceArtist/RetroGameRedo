@@ -102,8 +102,12 @@ if __name__ == '__main__':
         	<li>displaySize: list[int] - The size in pixels of the display window</li>
         	<li>display: pg.surface.Surface - The display window</li>
         	<li>renderScale: list[float] - How much the GameState render buffer is scaled</li>
-        	<li>keysDown: list[bool] - List of keys that are pressed this frame</li>
-        	<li>mouseDown: list[bool] - List of mouse buttons pressed this frame</li>
+        	<li>keysDown: list[bool] - List of booleans that represent if a key is up (False) or down (True)</li>
+        	<li>keysPressed: list[bool] - List of keys that got pressed this frame</li>
+        	<li>keysReleased: list[bool] - List of keys that got released this frame</li>
+        	<li>mouseDown: list[bool] - List of booleans that represent if a mouse button is up (False) or down (True)</li>
+        	<li>mousePressed: list[bool] - List of mouse buttons that got pressed this frame</li>
+        	<li>mouseReleased: list[bool] - List of mouse buttons that got released this frame</li>
         	<li>mousePos: list[int] - Position of mouse cursor, scaled to the render scale</li>
         	<li>_state: GameState - The current GameState object</li>
        		<li>running: bool - Is the game running</li>
@@ -124,16 +128,16 @@ if __name__ == '__main__':
         		scale the _state object's renderBuffer by the renderScale, and
         		blit the scaled renderBuffer to the Game's display
         	</li>
-        	<li>update(self) -> None - 
+        	<li>update() -> None - 
         		Pass the Game's deltaTime to the _state object
         		and call the _state's update function
         	</li>
-        	<li>syncFPS(self) -> None - 
+        	<li>syncFPS() -> None - 
         		Slow down game execution to sync with its frame rate and
         		store the deltaTime value (in ms) between the current frame and
         		the last frame
         	</li>
-        	<li>switchState(self, otherState: GameState) -> None - 
+        	<li>switchState(otherState: GameState) -> None - 
         		Set the _state object to a new GameState and refresh the
         		renderScale
         	</li>
@@ -154,8 +158,12 @@ if __name__ == '__main__':
 		<ul>
 			<li>renderSize: list[int] - The size in pixels of the renderBuffer</li>
         	<li>renderBuffer: pg.surface.Surface - The buffer onto which the GameState renderable data is written</li>
-        	<li>keysDown: list[bool] - Polled list of key states (True or False)</li>
-        	<li>mouseDown: list[bool] - Polled list of mouse button states (True or False)</li>
+        	<li>keysDown: list[bool] - List of booleans that represent if a key is up (False) or down (True)</li>
+        	<li>keysPressed: list[bool] - List of keys that got pressed this frame</li>
+        	<li>keysReleased: list[bool] - List of keys that got released this frame</li>
+        	<li>mouseDown: list[bool] - List of booleans that represent if a mouse button is up (False) or down (True)</li>
+        	<li>mousePressed: list[bool] - List of mouse buttons that got pressed this frame</li>
+        	<li>mouseReleased: list[bool] - List of mouse buttons that got released this frame</li>
         	<li>mousePos: list[int] - Mouse cursor position scaled to the renderSize (Because the Game's display and the GameState's renderBuffer can by different sizes).</li>
         	<li>entities: list[Entity] - An ordered list of Entity objects. For accessing specific objects, it is recommended to give them unique values in their "name" variable.</li>
         	<li>deltaTime: float - Time in milliseconds since the last frame. Useful for physics simulations.</li>
@@ -166,6 +174,12 @@ if __name__ == '__main__':
 		<ul>
 			<li>__init__(name:str = '', renderSize: list[int] = [800,600], entities: list[Entity] = list()) -> None - 
         		GameState constructor function. Sets up the render buffer and entities list.
+        	</li>
+        	<li>render() -> None - 
+        		Clears the GameState renderBuffer. Then calls the render function of each entity in the entity list with the GameState's renderBuffer as the render target.
+        	</li>
+        	<li>update() -> None - 
+        		Calls the update function of each entity in the entity list with the GameState's deltaTime as the given argument.
         	</li>
 		</ul>
 		
@@ -191,10 +205,10 @@ if __name__ == '__main__':
 			<li>__init__(name:str = '') -> None - 
         		Entity constructor function. Sets up the name, active bool and visible bool.
         	</li>
-			<li>update() -> None - 
+			<li>update(deltaTime:float = None) -> None - 
         		Does nothing by default and should be over written by derived classes.
         	</li>
-        	<li>render() -> None - 
+        	<li>render(buffer:Surface = None) -> None - 
         		Does nothing by default and should be over written by derived classes.
         	</li>
 		</ul>
@@ -310,12 +324,21 @@ if __name__ == '__main__':
 		<h2 id="Button">Button Class</h2>
 		
 		<p>
-			Dediney isosut lapazel eyotamutt helsopodys enoch karyn
+			The Button class is an extension of the Renderable class. Each button will have separate image data for each state the Button can be in (Initial, Locked, Hover, Down, Pending, Activated).
 		</p>
 		
 		<h3>Member Variables</h3>
 		<ul>
-			<li>text: str - The text literal that will be rendered</li>
+			<li>rect: pg.Rect - the Rect data of where the Button will be rendered</li>
+        	<li>initialState: Renderable - The image data for the Initial state</li>
+        	<li>lockedState: Renderable - The image data for the Locked state</li>
+        	<li>hoverState: Renderable - The image data for the Hover state</li>
+        	<li>downState: Renderable - The image data for the Down state</li>
+        	<li>pendingState: Renderable - The image data for the Pending state</li>
+        	<li>activatedState: Renderable - The image data for the Activated state</li>
+        	<li>states: list[Renderable] - All image data for the states put into a list</li>
+        	<li>state: int - Index of the state that represents which state's image data should be rendered</li>
+        	<li>text: Text - The Text object that has the image data and string text that will be rendered onto the button's current state</li>
 		</ul>
 
 		<h3>Member Functions</h3>
