@@ -1,4 +1,27 @@
 from SimpleGE import *
+
+class Car(RGBSurface):
+    def __init__(self, size: list[int] = [50,25], pos: list[int] = [0,0], color: list[int] = [77,77,77]) -> None:
+        super().__init__(pg.surface.Surface(size),pos)
+        self.img.fill(color)
+        self.velocity: pg.math.Vector2 = pg.math.Vector2(-5,0)
+        self.spawnPoint: pg.Rect = pg.Rect(pos,size)
+
+        return
+    #end __init__
+
+    def update(self, dt: float = None) -> None:
+        self.rect.center += self.velocity
+
+        return
+    #end update
+
+    def spawn(self) -> None:
+        self.rect.center = self.spawnPoint.center
+
+        return
+    #end spawn
+#end Car
     
 class FroggerState(GameState):
     def __init__(self) -> None:
@@ -78,12 +101,21 @@ class FroggerState(GameState):
 
         self.entities.append(self.frog)
         self.entities.append(self.lives)
+
+        self.car: Car = Car(
+            [self.tileCellSize * 1.75, self.tileCellSize * 0.75]
+            ,self.tileGrid[8][-2].topleft
+            ,[200,200,200]
+        )
+        self.car.rect.center = self.tileGrid[8][-1].center
+        self.car.spawnPoint.midleft = self.tileGrid[8][-1].midright
+        self.entities.append(self.car)
         
         return
     #end __init__
     
     def render(self) -> None:
-        self.renderBuffer.fill((0,0,0))
+        #self.renderBuffer.fill((0,0,0))
 
         #render tile map
         for tileY in range(self.tileGridSize[1]):
@@ -103,6 +135,8 @@ class FroggerState(GameState):
     #end render
     
     def update(self) -> None:
+        super().update()
+        
         if pg.K_UP in self.keysPressed:
             self.frogPos[1] -= 1
             
@@ -136,6 +170,15 @@ class FroggerState(GameState):
         #end if
         
         self.frog.center = self.tileGrid[self.frogPos[1]][self.frogPos[0]].center
+
+        #check for frog on car collision
+        if self.car.rect.collidepoint(self.frog.center):
+            self.car.spawn()
+            self.numLives -= 1
+            self.lives.updateText("Lives: %d" % self.numLives)
+            self.frogPos = [9,13]
+            self.frog.center = self.tileGrid[self.frogPos[1]][self.frogPos[0]].center
+        #end if
         
         return
     #end update

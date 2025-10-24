@@ -53,7 +53,9 @@ class GameState(Entity):
         
         for entity in self.entities:
             if isinstance(entity,Entity):
-                entity.render(self.renderBuffer)
+                if entity.visible:
+                    entity.render(self.renderBuffer)
+                #end if
             #end if
         #end for
         
@@ -63,7 +65,9 @@ class GameState(Entity):
     def update(self) -> None:        
         for entity in self.entities:
             if isinstance(entity,Entity):
-                entity.update(self.deltaTime)
+                if entity.active:
+                    entity.update(self.deltaTime)
+                #end if
             #end if
         #end for
         
