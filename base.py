@@ -23,7 +23,78 @@ class Entity:
         
         return
     #end update
+    
+#     def handleKeyboard(self, keysDown: list[bool], keysPressed: list[int], keysReleased: list[int]) -> None:
+#         
+#         return
+#     #end handleKeyboard
 #end Entity
+
+class EntityGroup(Entity):
+    def __init__(self, entities: list[Entity] = [], name: str = 'EntityGroup') -> None:
+        super().__init__(name)
+        self.entities: list[Entity] = [entity for entity in entities if isinstance(entity, Entity)]
+        
+        return
+    #end __init__
+    
+    def __getitem__(self, i: int) -> Entity:
+        
+        return self.entities.__getitem__(i)
+    #end __getitem__
+    
+    def __len__(self) -> int:
+        
+        return self.entities.__len__()
+    #end __len__
+    
+    def __iter__(self) -> Entity:
+        
+        return self.entities.__iter__()
+    #end __iter__
+    
+    def __repr__(self) -> str:
+        
+        return self.entities.__repr__()
+    #end __repr__
+    
+    def __str__(self) -> str:
+        
+        return self.entities.__str__()
+    #end __str__
+    
+    def render(self, buffer: pg.surface.Surface) -> None:
+        for entity in self.entities:
+            if isinstance(entity,Entity):
+                if entity.visible:
+                    entity.render(buffer)
+                #end if
+            #end if
+        #end for
+        
+        return
+    #end render
+    
+    def update(self, dt: float) -> None:
+        for entity in self.entities:
+            if isinstance(entity,Entity):
+                if entity.active:
+                    entity.update(dt)
+                #end if
+            #end if
+        #end for
+        
+        return
+    #end update
+    
+    def add(self, entity: Entity) -> None:
+        if isinstance(entity, Entity):
+            self.entities.append(entity)
+        #end if
+        
+        return
+    #end add
+#end EntityGroup
     
 class GameState(Entity):
     def __init__(self, name:str = '', renderSize: list[int] = [800,600], entities: list[Entity] = list()) -> None:
@@ -72,7 +143,17 @@ class GameState(Entity):
         #end for
         
         return
-    #end render
+    #end update
+    
+#     def handleKeyboard(self) -> None:        
+#         for entity in self.entities:
+#             if isinstance(entity,Entity):
+#                 entity.handleKeyboard(self.keysDown, self.keysPressed, self.keysReleased)
+#             #end if
+#         #end for
+#         
+#         return
+#     #end handleKeyboard
 #end GameState
     
 class Game(Entity):
@@ -171,6 +252,7 @@ class Game(Entity):
     def update(self) -> None:
         if isinstance(self._state,GameState):
             self._state.deltaTime = self.deltaTime
+#             self._state.handleKeyboard()
             self._state.update()
         #end if
 
