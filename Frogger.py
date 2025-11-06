@@ -331,7 +331,8 @@ class FroggerState(GameState):
             #truck is off screen
             if self.trucks[self.truckInd].rect.right < 0 or self.trucks[self.truckInd].rect.left >= self.renderSize[0]:
                 self.trucks[self.truckInd].spawn()
-                self.trucks[self.truckInd].rect.left = max([x.rect.right for x in self.trucks]) + self.tileCellSize
+                self.trucks[self.truckInd].rect.left = max([
+                    x.rect.right for x in self.trucks]) + self.tileCellSize * randint(1,3)
                 self.truckInd = (self.truckInd + 1) % self.numTrucks
             #end if
         #end if
@@ -340,7 +341,8 @@ class FroggerState(GameState):
         if random() <= self.truckSpawnPerc:
             if self.purpleCars[self.purpleCarInd].rect.right < 0 or self.purpleCars[self.purpleCarInd].rect.left >= self.renderSize[0]:
                 self.purpleCars[self.purpleCarInd].spawn()
-                self.purpleCars[self.purpleCarInd].rect.left = max([x.rect.right for x in self.purpleCars]) + self.tileCellSize
+                self.purpleCars[self.purpleCarInd].rect.left = max([
+                    x.rect.right for x in self.purpleCars]) + self.tileCellSize * randint(1,3)
                 self.purpleCarInd = (self.purpleCarInd + 1) % self.numTrucks
             #end if
         #end if
@@ -349,7 +351,8 @@ class FroggerState(GameState):
         if random() <= self.truckSpawnPerc:
             if self.yellowCars[self.yellowCarInd].rect.right < 0 or self.yellowCars[self.yellowCarInd].rect.left >= self.renderSize[0]:
                 self.yellowCars[self.yellowCarInd].spawn()
-                self.yellowCars[self.yellowCarInd].rect.right = min([x.rect.left for x in self.yellowCars]) - self.tileCellSize
+                self.yellowCars[self.yellowCarInd].rect.right = min([
+                    x.rect.left for x in self.yellowCars]) - self.tileCellSize * randint(1,3)
                 self.yellowCarInd = (self.yellowCarInd + 1) % self.numTrucks
             #end if
         #end if
@@ -358,7 +361,8 @@ class FroggerState(GameState):
         if random() <= self.truckSpawnPerc:
             if self.blueCars[self.blueCarInd].rect.right < 0 or self.blueCars[self.blueCarInd].rect.left >= self.renderSize[0]:
                 self.blueCars[self.blueCarInd].spawn()
-                self.blueCars[self.blueCarInd].rect.right = min([x.rect.left for x in self.blueCars]) - self.tileCellSize
+                self.blueCars[self.blueCarInd].rect.right = min([
+                    x.rect.left for x in self.blueCars]) - self.tileCellSize * randint(1,3)
                 self.blueCarInd = (self.blueCarInd + 1) % self.numTrucks
             #end if
         #end if
