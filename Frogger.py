@@ -1,11 +1,12 @@
 from SimpleGE import *
 from random import randint, random
+from math import ceil
 
-class Car(RGBSurface):
-    def __init__(self, size: list[int] = [50,25], pos: list[int] = [0,0], color: list[int] = [77,77,77]) -> None:
+class Log(RGBSurface):
+    def __init__(self, size: list[int] = [50,25], pos: list[int] = [0,0], speed: int = 0) -> None:
         super().__init__(pg.surface.Surface(size),pos)
-        self.img.fill(color)
-        self.velocity: pg.math.Vector2 = pg.math.Vector2(-5,0)
+        self.img.fill((100,50,0))
+        self.velocity: pg.math.Vector2 = pg.math.Vector2(-speed,0)
         self.spawnPoint: pg.Rect = pg.Rect(pos,size)
 
         return
@@ -19,7 +20,32 @@ class Car(RGBSurface):
 
     def spawn(self) -> None:
         self.rect.center = self.spawnPoint.center
-        self.velocity = pg.math.Vector2(-5,0)
+        self.active = True
+        self.visible = True
+
+        return
+    #end spawn
+#end Log
+
+class Car(RGBSurface):
+    def __init__(self, size: list[int] = [50,25], pos: list[int] = [0,0], color: list[int] = [77,77,77], speed: int = 3) -> None:
+        super().__init__(pg.surface.Surface(size),pos)
+        self.img.fill(color)
+        self.velocity: pg.math.Vector2 = pg.math.Vector2(-speed,0)
+        self.spawnPoint: pg.Rect = pg.Rect(pos,size)
+        self.collisionRect: pg.Rect = self.rect.inflate(4,0)
+
+        return
+    #end __init__
+
+    def update(self, dt: float = None) -> None:
+        self.rect.center += self.velocity
+
+        return
+    #end update
+
+    def spawn(self) -> None:
+        self.rect.center = self.spawnPoint.center
         self.active = True
         self.visible = True
 
@@ -131,7 +157,10 @@ class FroggerState(GameState):
         self.tileGrid: TileGrid = TileGrid(self.tileSet,self.tileMap,self.tileCellSize)
         
         #set up frogs
-        self.frog: Frog = Frog([self.tileCellSize,self.tileCellSize], self.tileGrid.tiles[13][10].rect.topleft)
+        self.frog: Frog = Frog(
+            [self.tileCellSize*0.75,self.tileCellSize*0.75]
+            , self.tileGrid.tiles[13][10].rect.move([self.tileCellSize * 0.125, self.tileCellSize * 0.125]).topleft
+        )
         
         self.blueFrog: Frog = Frog([self.tileCellSize,self.tileCellSize], self.tileGrid.tiles[1][2].rect.topleft, (0,0,100))
         self.redFrog: Frog = Frog([self.tileCellSize,self.tileCellSize], self.tileGrid.tiles[1][5].rect.topleft, (100,0,0))
@@ -152,12 +181,14 @@ class FroggerState(GameState):
         #set up gui text
         self.numLives: int = 5
         self.lives: Text = Text("LIVES: %d" % self.numLives, self.tileCellSize)
-        self.timeLeft: int = 90
-        self.time: Text = Text("TIME: %d" % self.timeLeft, self.tileCellSize)
+        self.timeLeft: float = 90.0
+        self.time: Text = Text("TIME: %d" % ceil(self.timeLeft), self.tileCellSize)
         self.time.rect.right = self.renderSize[0] - 1
+        self.numScore: int = 0
+        self.score: Text = Text("SCORE: %d" % self.numScore, self.tileCellSize)
+        self.score.rect.midtop = self.tileGrid.tiles[0][9].rect.midtop
         
-        #set up cars
-        cell: pg.Rect = self.tileGrid.tiles[8][19].rect
+        #set up trucks
         carSize: list[int] = [self.tileCellSize * 2, self.tileCellSize * 0.75]
         self.trucks: EntityGroup = EntityGroup()
         self.numTrucks: int = 3
@@ -165,8 +196,9 @@ class FroggerState(GameState):
         for i in range(self.numTrucks):
             self.trucks.add(Car(
                 carSize
-                ,[cell.right,cell.top + (self.tileCellSize - carSize[1])]
+                , self.tileGrid.tiles[8][19].rect.move(self.tileCellSize,(self.tileCellSize - carSize[1]) / 2).topleft
                 , (200,200,200)
+                ,3
             ))
             self.trucks[-1].active = False
         #end for
@@ -174,17 +206,91 @@ class FroggerState(GameState):
         self.truckInd: int = 0
         self.truckSpawnPerc: float = 0.025
         
+        #set up yellow cars
+        self.yellowCars: EntityGroup = EntityGroup()
+        carSize = [self.tileCellSize * 1.0, self.tileCellSize * 0.75]
+        for i in range(self.numTrucks):
+            self.yellowCars.add(Car(
+                carSize
+                ,self.tileGrid.tiles[9][0].rect.move(-self.tileCellSize * 2,(self.tileCellSize - carSize[1]) / 2).topleft
+                , (200,200,100)
+                ,-4.25
+            ))
+            self.yellowCars[-1].active = False
+        #end for
+            
+        self.yellowCarInd: int = 0
+        
+        #set up purple cars
+        self.purpleCars: EntityGroup = EntityGroup()
+        carSize = [self.tileCellSize * 1.0, self.tileCellSize * 0.75]
+        for i in range(self.numTrucks):
+            self.purpleCars.add(Car(
+                carSize
+                ,self.tileGrid.tiles[11][19].rect.move(self.tileCellSize,(self.tileCellSize - carSize[1]) / 2).topleft
+                , (200,100,200)
+                ,5
+            ))
+            self.purpleCars[-1].active = False
+        #end for
+            
+        self.purpleCarInd: int = 0
+            
+        #set up Blue cars
+        self.blueCars: EntityGroup = EntityGroup()
+        carSize = [self.tileCellSize * 1.0, self.tileCellSize * 0.75]
+        for i in range(self.numTrucks):
+            self.blueCars.add(Car(
+                carSize
+                ,self.tileGrid.tiles[12][0].rect.move(-self.tileCellSize * 2,(self.tileCellSize - carSize[1]) / 2).topleft
+                , (100,100,255)
+                ,-5.25
+            ))
+            self.blueCars[-1].active = False
+        #end for
+            
+        self.blueCarInd: int = 0
+        
+        #set up logs
+        logSize: list[int] = [randint(2,5) * self.tileCellSize,self.tileCellSize * 0.5]
+        self.logs: EntityGroup = EntityGroup()
+        
+        for row in range(4):
+            logSize = [randint(2,5) * self.tileCellSize,self.tileCellSize * 0.5]
+            if row % 2 == 0:
+                self.logs.add(Log(
+                    logSize
+                    ,self.tileGrid.tiles[2 + row][0].rect.move(-5 * self.tileCellSize,(self.tileCellSize - logSize[1]) / 2).topleft
+                    ,-1.5
+                ))
+            else:
+                self.logs.add(Log(
+                    logSize
+                    ,self.tileGrid.tiles[2 + row][19].rect.move(0,(self.tileCellSize - logSize[1]) / 2).topright
+                    ,1.5
+                ))
+            #end if
+            self.logs[-1].active = True
+        #end for
+                
+        
         #append the entities to the entity list
         self.entities.append(self.tileGrid)
         
         self.entities.append(self.gayFrogs)
         
         self.entities.append(self.trucks)
+        self.entities.append(self.purpleCars)
+        self.entities.append(self.yellowCars)
+        self.entities.append(self.blueCars)
+        
+        self.entities.append(self.logs)
         
         self.entities.append(self.frog)
         
         self.entities.append(self.lives)
         self.entities.append(self.time)
+        self.entities.append(self.score)
         
         return
     #end __init__
@@ -220,10 +326,40 @@ class FroggerState(GameState):
             #end if
         #end if
         
+        #spawn trucks
         if random() <= self.truckSpawnPerc:
-            if len([x for x in self.trucks if x.rect.right > 0 and x.rect.left < self.renderSize[0]]) < self.numTrucks:
+            #truck is off screen
+            if self.trucks[self.truckInd].rect.right < 0 or self.trucks[self.truckInd].rect.left >= self.renderSize[0]:
                 self.trucks[self.truckInd].spawn()
+                self.trucks[self.truckInd].rect.left = max([x.rect.right for x in self.trucks]) + self.tileCellSize
                 self.truckInd = (self.truckInd + 1) % self.numTrucks
+            #end if
+        #end if
+        
+        #spawn purple cars
+        if random() <= self.truckSpawnPerc:
+            if self.purpleCars[self.purpleCarInd].rect.right < 0 or self.purpleCars[self.purpleCarInd].rect.left >= self.renderSize[0]:
+                self.purpleCars[self.purpleCarInd].spawn()
+                self.purpleCars[self.purpleCarInd].rect.left = max([x.rect.right for x in self.purpleCars]) + self.tileCellSize
+                self.purpleCarInd = (self.purpleCarInd + 1) % self.numTrucks
+            #end if
+        #end if
+                
+        #spawn yellow cars
+        if random() <= self.truckSpawnPerc:
+            if self.yellowCars[self.yellowCarInd].rect.right < 0 or self.yellowCars[self.yellowCarInd].rect.left >= self.renderSize[0]:
+                self.yellowCars[self.yellowCarInd].spawn()
+                self.yellowCars[self.yellowCarInd].rect.right = min([x.rect.left for x in self.yellowCars]) - self.tileCellSize
+                self.yellowCarInd = (self.yellowCarInd + 1) % self.numTrucks
+            #end if
+        #end if
+                
+        #spawn Blue cars
+        if random() <= self.truckSpawnPerc:
+            if self.blueCars[self.blueCarInd].rect.right < 0 or self.blueCars[self.blueCarInd].rect.left >= self.renderSize[0]:
+                self.blueCars[self.blueCarInd].spawn()
+                self.blueCars[self.blueCarInd].rect.right = min([x.rect.left for x in self.blueCars]) - self.tileCellSize
+                self.blueCarInd = (self.blueCarInd + 1) % self.numTrucks
             #end if
         #end if
                 
@@ -235,15 +371,40 @@ class FroggerState(GameState):
             self.numLives -= 1
             self.lives.updateText("LIVES: %d" % self.numLives)
         #end if
+            
+            
+        #frog purple Car collision
+        if any([car.rect.colliderect(self.frog) for car in self.purpleCars]):
+            self.frog.spawn()
+            self.numLives -= 1
+            self.lives.updateText("LIVES: %d" % self.numLives)
+        #end if
+            
+        #frog yellow Car collision
+        if any([car.rect.colliderect(self.frog) for car in self.yellowCars]):
+            self.frog.spawn()
+            self.numLives -= 1
+            self.lives.updateText("LIVES: %d" % self.numLives)
+        #end if
+            
+        #frog Blue Car collision
+        if any([car.rect.colliderect(self.frog) for car in self.blueCars]):
+            self.frog.spawn()
+            self.numLives -= 1
+            self.lives.updateText("LIVES: %d" % self.numLives)
+        #end if
         
-        #frog water collision
-        if any([any([tile.rect.colliderect(self.frog.rect) for tile in row]) for row in self.tileGrid.tiles[2:6]]):
+        #frog water/log/turtle collision
+        if any([log.rect.colliderect(self.frog) for log in self.logs]):
+            pass
+        elif any([any([tile.rect.colliderect(self.frog.rect) for tile in row]) for row in self.tileGrid.tiles[2:6]]):
             self.frog.spawn()
             self.numLives -= 1
             self.lives.updateText("LIVES: %d" % self.numLives)
         #end if
                     
         #update gui text
+        self.timeLeft -= (self.deltaTime / 1000)
         self.lives.updateText("LIVES: %d" % self.numLives)
         self.time.updateText("TIME: %d" % self.timeLeft)
         

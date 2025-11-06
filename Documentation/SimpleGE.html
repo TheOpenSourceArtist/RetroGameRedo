@@ -22,6 +22,7 @@
 				
 				<ul>
 					<li><a href="#Entity">Entity</a></li>
+					<li><a href="#EntityGroup">EntityGroup</a></li>
 					<li><a href="#GameState">GameState</a></li>
 					<li><a href="#Game">Game</a></li>
 				</ul>
@@ -213,6 +214,49 @@ if __name__ == '__main__':
         	</li>
 		</ul>
 		
+		<h2 id="EntityGroup">EntityGroup Class</h2>
+		
+		<p>
+			EntityGroups allow the user to put Entities into a named list. EntityGroup will behave list a list such that you can access elements of it with the [] braces and it is iterable. 
+		</p>
+		
+		<h3>Member Variables</h3>
+		<ul>
+			<li>name: str - A name or id given to the Entity</li>
+			<li>entities: list[Entity] - The list of Entities in the group
+		</ul>
+		
+		<h3>Member Functions</h3>
+		<ul>
+			<li>__init__(entities: list[Entity] = [], name: str = 'EntityGroup') -> None - 
+        		EntityGroup constructor function. Sets up the list of Entities in the group
+        	</li>
+        	<li>__getitem__(i: int) -> Entity:
+        		Returns the Entity at position i in the entity list
+    		</li>
+    		<li>__len__() -> Int:
+        		Returns the length of the Entity list
+    		</li>
+    		<li>__iter__() -> Iterator:
+        		Returns an iterator object on the Entity list
+    		</li>
+    		<li>__repr__() -> str:
+        		Returns the String Representation of the Entity list
+    		</li>
+    		<li>__str__() -> Int:
+        		Returns the String Representation of the Entity list
+    		</li>
+    		<li>render(buffer: pg.surface.Surface) -> None:
+        		Calls the render function of each Entity in the Entity list with the given buffer as the render Surface
+    		</li>
+    		<li>update(dt: float) -> None:
+        		Calls the update function of each Entity in the Entity list with the given delta time as the input
+    		</li>
+    		<li>add(entity: Entity) -> None:
+        		Adds the given entity to the Entity list if entity is an instance of Entity
+    		</li>
+		</ul>
+		
 		<h2 id="Renderable">Renderable Class</h2>
 		
 		<p>
@@ -306,6 +350,9 @@ if __name__ == '__main__':
 		<ul>
 			<li>__init__(text: str = '', size: int = 12, color: list[int] = (255,255,255), name: str = 'text') -> None - <br>
         		Text constructor function. Sets up the name and image data. 
+        	</li>
+        	<li>updateText(newText: str) -> None - <br>
+        		Updates the rendered text and adjusts the Rect of the resulting image data 
         	</li>
 		</ul>
 		
