@@ -191,7 +191,7 @@ class FroggerState(GameState):
         #set up trucks
         carSize: list[int] = [self.tileCellSize * 2, self.tileCellSize * 0.75]
         self.trucks: EntityGroup = EntityGroup()
-        self.numTrucks: int = 3
+        self.numTrucks: int = 5
         
         for i in range(self.numTrucks):
             self.trucks.add(Car(
