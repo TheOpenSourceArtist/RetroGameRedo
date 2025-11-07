@@ -122,6 +122,7 @@ class FroggerState(GameState):
 
         self.grass: pg.surface.Surface = pg.surface.Surface((self.tileCellSize,self.tileCellSize))
         self.grass.fill((0,255,0))
+        self.grass = pg.image.load('gfx/grass.png')
 
         self.road: pg.surface.Surface = pg.surface.Surface((self.tileCellSize,self.tileCellSize))
         self.road.fill((50,50,50))
@@ -261,17 +262,33 @@ class FroggerState(GameState):
                 self.logs.add(Log(
                     logSize
                     ,self.tileGrid.tiles[2 + row][0].rect.move(-5 * self.tileCellSize,(self.tileCellSize - logSize[1]) / 2).topleft
-                    ,-1.5
+                    ,-1
                 ))
             else:
                 self.logs.add(Log(
                     logSize
                     ,self.tileGrid.tiles[2 + row][19].rect.move(0,(self.tileCellSize - logSize[1]) / 2).topright
-                    ,1.5
+                    ,1
                 ))
             #end if
             self.logs[-1].active = True
         #end for
+
+        #set up log1 
+        self.logs1: EntityGroup = EntityGroup()
+        logSize: list[int] = [randint(2,5) * self.tileCellSize,self.tileCellSize * 0.5]
+        
+        for i in range(self.numTrucks):
+            logSize: list[int] = [randint(2,5) * self.tileCellSize,self.tileCellSize * 0.5]
+            self.logs1.add(Log(
+                logSize
+                ,self.tileGrid.tiles[2 + row][0].rect.move(-5 * self.tileCellSize,(self.tileCellSize - logSize[1]) / 2).topleft
+                ,-1.5
+            ))
+            self.logs1[-1].active = False
+        #end for
+            
+        self.logs1Ind: int = 0
                 
         
         #append the entities to the entity list
@@ -285,6 +302,7 @@ class FroggerState(GameState):
         self.entities.append(self.blueCars)
         
         self.entities.append(self.logs)
+        self.entities.append(self.logs1)
         
         self.entities.append(self.frog)
         
@@ -366,6 +384,17 @@ class FroggerState(GameState):
                 self.blueCarInd = (self.blueCarInd + 1) % self.numTrucks
             #end if
         #end if
+
+        #spawn logs1
+        if random() <= self.truckSpawnPerc:
+            #log is off screen
+            if self.logs1[self.logs1Ind].rect.right < 0 or self.logs1[self.logs1Ind].rect.left >= self.renderSize[0]:
+                self.logs1[self.logs1Ind].spawn()
+                self.logs1[self.logs1Ind].rect.right = min([
+                    x.rect.left for x in self.logs1]) - self.tileCellSize
+                self.logs1Ind = (self.logs1Ind + 1) % self.numTrucks
+            #end if
+        #end if
                 
         #handle bounds and collisions
                 
@@ -399,7 +428,7 @@ class FroggerState(GameState):
         #end if
         
         #frog water/log/turtle collision
-        if any([log.rect.colliderect(self.frog) for log in self.logs]):
+        if any([log.rect.colliderect(self.frog) for log in self.logs1]):
             pass
         elif any([any([tile.rect.colliderect(self.frog.rect) for tile in row]) for row in self.tileGrid.tiles[2:6]]):
             self.frog.spawn()
