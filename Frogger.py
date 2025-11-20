@@ -1,5 +1,5 @@
 from SimpleGE import *
-from random import randint, random
+from random import randint, random, choice
 from math import ceil
 
 class Log(RGBSurface):
@@ -61,6 +61,7 @@ class Frog(RGBSurface):
         self.img.fill((255,0,255))
         pg.draw.circle(self.img,color,[size[0]/2,size[1]/2],size[0]/2)
         self.img.set_colorkey((255,0,255))
+        self.onThing: RGBSurface = None
         
         return
     #end __init__
@@ -72,6 +73,14 @@ class Frog(RGBSurface):
 
         return
     #end spawn
+    
+    def update(self, dt):
+        if isinstance(self.onThing,Log):
+            self.rect.center += self.onThing.velocity
+            
+        
+        return
+    #end update
 #end Frog
     
 class TileGrid(Entity):
@@ -122,7 +131,7 @@ class FroggerState(GameState):
 
         self.grass: pg.surface.Surface = pg.surface.Surface((self.tileCellSize,self.tileCellSize))
         self.grass.fill((0,255,0))
-        self.grass = pg.image.load('gfx/grass.png')
+#         self.grass = pg.image.load('gfx/grass.png')
 
         self.road: pg.surface.Surface = pg.surface.Surface((self.tileCellSize,self.tileCellSize))
         self.road.fill((50,50,50))
@@ -253,43 +262,58 @@ class FroggerState(GameState):
         self.blueCarInd: int = 0
         
         #set up logs
-        logSize: list[int] = [randint(2,5) * self.tileCellSize,self.tileCellSize * 0.5]
+        logSize: list[int] = [self.tileCellSize * 2, self.tileCellSize * 0.5]
         self.logs: EntityGroup = EntityGroup()
+        self.numLogs: int = 5
+        self.logSpawnLocs: list[pg.Rect] = [
+            self.tileGrid.tiles[2][0].rect.move(-self.tileCellSize * 5,(self.tileCellSize - logSize[1]) / 2)
+            ,self.tileGrid.tiles[3][-1].rect.move(self.tileCellSize,(self.tileCellSize - logSize[1]) / 2)
+            ,self.tileGrid.tiles[4][0].rect.move(-self.tileCellSize * 5,(self.tileCellSize - logSize[1]) / 2)
+            ,self.tileGrid.tiles[5][-1].rect.move(self.tileCellSize,(self.tileCellSize - logSize[1]) / 2)
+        ]
         
-        for row in range(4):
-            logSize = [randint(2,5) * self.tileCellSize,self.tileCellSize * 0.5]
-            if row % 2 == 0:
-                self.logs.add(Log(
-                    logSize
-                    ,self.tileGrid.tiles[2 + row][0].rect.move(-5 * self.tileCellSize,(self.tileCellSize - logSize[1]) / 2).topleft
-                    ,-1
-                ))
-            else:
-                self.logs.add(Log(
-                    logSize
-                    ,self.tileGrid.tiles[2 + row][19].rect.move(0,(self.tileCellSize - logSize[1]) / 2).topright
-                    ,1
-                ))
-            #end if
-            self.logs[-1].active = True
-        #end for
-
-        #set up log1 
-        self.logs1: EntityGroup = EntityGroup()
-        logSize: list[int] = [randint(2,5) * self.tileCellSize,self.tileCellSize * 0.5]
-        
-        for i in range(self.numTrucks):
-            logSize: list[int] = [randint(2,5) * self.tileCellSize,self.tileCellSize * 0.5]
-            self.logs1.add(Log(
+        for i in range(self.numLogs):
+            self.logs.add(Log(
                 logSize
-                ,self.tileGrid.tiles[2 + row][0].rect.move(-5 * self.tileCellSize,(self.tileCellSize - logSize[1]) / 2).topleft
-                ,-1.5
+                , self.logSpawnLocs[0].topleft
+                , 0
             ))
-            self.logs1[-1].active = False
+            self.logs[-1].active = False
+        #end for
+        
+        logSize: list[int] = [self.tileCellSize * 3, self.tileCellSize * 0.5]
+        for i in range(self.numLogs):
+            self.logs.add(Log(
+                logSize
+                , self.logSpawnLocs[0].topleft
+                , 0
+            ))
+            self.logs[-1].active = False
         #end for
             
-        self.logs1Ind: int = 0
-                
+        logSize: list[int] = [self.tileCellSize * 4, self.tileCellSize * 0.5]
+        for i in range(self.numLogs):
+            self.logs.add(Log(
+                logSize
+                , self.logSpawnLocs[0].topleft
+                , 0
+            ))
+            self.logs[-1].active = False
+        #end for
+            
+        logSize: list[int] = [self.tileCellSize * 5, self.tileCellSize * 0.5]
+        for i in range(self.numLogs):
+            self.logs.add(Log(
+                logSize
+                , self.logSpawnLocs[0].topleft
+                , 0
+            ))
+            self.logs[-1].active = False
+        #end for
+            
+        self.logInd: int = 0
+        self.numLogs = len(self.logs)
+        self.logSpawnPerc: float = 0.07                
         
         #append the entities to the entity list
         self.entities.append(self.tileGrid)
@@ -302,7 +326,6 @@ class FroggerState(GameState):
         self.entities.append(self.blueCars)
         
         self.entities.append(self.logs)
-        self.entities.append(self.logs1)
         
         self.entities.append(self.frog)
         
@@ -321,6 +344,12 @@ class FroggerState(GameState):
             if self.frog.rect.top < 0:
                 self.frog.rect.top = 0
             #end if
+                
+            #snap to nearest tile
+            row: int = int(self.frog.rect.centery / self.tileCellSize)
+            col: int = int(self.frog.rect.centerx / self.tileCellSize)
+            self.frog.rect.center = self.tileGrid.tiles[row][col].rect.center
+            
         #end if
         if pg.K_DOWN in self.keysPressed:
             self.frog.rect.bottom += self.tileCellSize
@@ -328,6 +357,11 @@ class FroggerState(GameState):
             if self.frog.rect.bottom >= self.renderSize[1]:
                 self.frog.rect.bottom = self.renderSize[1] - 1
             #end if
+                
+            #snap to nearest tile
+            row: int = int(self.frog.rect.centery / self.tileCellSize)
+            col: int = int(self.frog.rect.centerx / self.tileCellSize)
+            self.frog.rect.center = self.tileGrid.tiles[row][col].rect.center
         #end if
         if pg.K_LEFT in self.keysPressed:
             self.frog.rect.right -= self.tileCellSize
@@ -335,6 +369,11 @@ class FroggerState(GameState):
             if self.frog.rect.left < 0:
                 self.frog.rect.left = 0
             #end if
+                
+            #snap to nearest tile
+            row: int = int(self.frog.rect.centery / self.tileCellSize)
+            col: int = int(self.frog.rect.centerx / self.tileCellSize)
+            self.frog.rect.center = self.tileGrid.tiles[row][col].rect.center
         #end if
         if pg.K_RIGHT in self.keysPressed:
             self.frog.rect.right += self.tileCellSize
@@ -342,6 +381,11 @@ class FroggerState(GameState):
             if self.frog.rect.right >= self.renderSize[0]:
                 self.frog.rect.right = self.renderSize[0] - 1
             #end if
+                
+            #snap to nearest tile
+            row: int = int(self.frog.rect.centery / self.tileCellSize)
+            col: int = int(self.frog.rect.centerx / self.tileCellSize)
+            self.frog.rect.center = self.tileGrid.tiles[row][col].rect.center
         #end if
         
         #spawn trucks
@@ -384,16 +428,27 @@ class FroggerState(GameState):
                 self.blueCarInd = (self.blueCarInd + 1) % self.numTrucks
             #end if
         #end if
-
-        #spawn logs1
-        if random() <= self.truckSpawnPerc:
-            #log is off screen
-            if self.logs1[self.logs1Ind].rect.right < 0 or self.logs1[self.logs1Ind].rect.left >= self.renderSize[0]:
-                self.logs1[self.logs1Ind].spawn()
-                self.logs1[self.logs1Ind].rect.right = min([
-                    x.rect.left for x in self.logs1]) - self.tileCellSize
-                self.logs1Ind = (self.logs1Ind + 1) % self.numTrucks
-            #end if
+                
+        #spawn logs
+        if random() <= self.logSpawnPerc:
+            #try 5 times
+            for i in range(5):
+                log = choice(self.logs)
+                spawn = choice(self.logSpawnLocs)
+                
+                if log.rect.right < 0 or log.rect.left >= self.renderSize[0]:
+                    log.spawnPoint = spawn
+                    log.spawn()
+                    
+                    if spawn.left < 0:
+                        log.velocity.x = 3
+                    else:
+                        log.velocity.x = -3
+                    #end if
+                    
+                    break
+                #end if
+            #end for
         #end if
                 
         #handle bounds and collisions
@@ -404,7 +459,6 @@ class FroggerState(GameState):
             self.numLives -= 1
             self.lives.updateText("LIVES: %d" % self.numLives)
         #end if
-            
             
         #frog purple Car collision
         if any([car.rect.colliderect(self.frog) for car in self.purpleCars]):
@@ -428,7 +482,16 @@ class FroggerState(GameState):
         #end if
         
         #frog water/log/turtle collision
-        if any([log.rect.colliderect(self.frog) for log in self.logs1]):
+        self.frog.onThing = None
+        
+        for log in self.logs:
+            if log.rect.colliderect(self.frog.rect):
+                self.frog.onThing = log
+                break
+            #end if
+        #end for
+            
+        if self.frog.onThing != None:
             pass
         elif any([any([tile.rect.colliderect(self.frog.rect) for tile in row]) for row in self.tileGrid.tiles[2:6]]):
             self.frog.spawn()
