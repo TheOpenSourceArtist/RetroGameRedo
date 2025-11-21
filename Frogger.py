@@ -490,6 +490,22 @@ class FroggerState(GameState):
                 break
             #end if
         #end for
+
+        if self.frog.rect.top < 0:
+            self.frog.rect.top = 0
+        #end if
+
+        if self.frog.rect.bottom >= self.renderSize[1]:
+            self.frog.rect.bottom = self.renderSize[1] - 1
+        #end if
+
+        if self.frog.rect.left < 0:
+            self.frog.rect.left = 0
+        #end if
+
+        if self.frog.rect.right >= self.renderSize[0]:
+            self.frog.rect.right = self.renderSize[0] - 1
+        #end if
             
         if self.frog.onThing != None:
             pass
