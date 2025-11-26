@@ -1,534 +1,594 @@
-from SimpleGE import *
-from random import randint, random, choice
-from math import ceil
+from SimplerGE import *
+from random import choices, choice
+from PIL import Image
 
-class Log(RGBSurface):
-    def __init__(self, size: list[int] = [50,25], pos: list[int] = [0,0], speed: int = 0) -> None:
-        super().__init__(pg.surface.Surface(size),pos)
-        self.img.fill((100,50,0))
-        self.velocity: pg.math.Vector2 = pg.math.Vector2(-speed,0)
-        self.spawnPoint: pg.Rect = pg.Rect(pos,size)
-
-        return
-    #end __init__
-
-    def update(self, dt: float = None) -> None:
-        self.rect.center += self.velocity
-
-        return
-    #end update
-
-    def spawn(self) -> None:
-        self.rect.center = self.spawnPoint.center
-        self.active = True
-        self.visible = True
-
-        return
-    #end spawn
-#end Log
-
-class Car(RGBSurface):
-    def __init__(self, size: list[int] = [50,25], pos: list[int] = [0,0], color: list[int] = [77,77,77], speed: int = 3) -> None:
-        super().__init__(pg.surface.Surface(size),pos)
-        self.img.fill(color)
-        self.velocity: pg.math.Vector2 = pg.math.Vector2(-speed,0)
-        self.spawnPoint: pg.Rect = pg.Rect(pos,size)
-        self.collisionRect: pg.Rect = self.rect.inflate(4,0)
-
-        return
-    #end __init__
-
-    def update(self, dt: float = None) -> None:
-        self.rect.center += self.velocity
-
-        return
-    #end update
-
-    def spawn(self) -> None:
-        self.rect.center = self.spawnPoint.center
-        self.active = True
-        self.visible = True
-
-        return
-    #end spawn
-#end Car
-    
-class Frog(RGBSurface):
-    def __init__(self, size: list[int] = [40,40], pos: list[int] = [0,0], color: list[int] = [0,100,0]) -> None:
-        super().__init__(pg.surface.Surface(size))
-        self.rect.topleft = pos
-        self.spawnPoint: pg.Rect = pg.Rect(pos,size)
-        self.img.fill((255,0,255))
-        pg.draw.circle(self.img,color,[size[0]/2,size[1]/2],size[0]/2)
-        self.img.set_colorkey((255,0,255))
-        self.onThing: RGBSurface = None
+class Frog(Entity):
+    def __init__(self, spawnPoint: list[int] = [0,0]) -> None:
+        super().__init__((spawnPoint,(16,16)),pg.image.load('gfx/frog16x16.bmp'))
+        self.speed: int = 20
+        self.spawnPoint: pg.Rect = pg.Rect(self.rect)
+        self.states: list[pg.surface.Surface] = [
+            self.img
+            ,pg.transform.rotate(self.img,90)
+            ,pg.transform.rotate(self.img,180)
+            ,pg.transform.rotate(self.img,270)
+        ]
+        self.state: int = 0
         
-        return
-    #end __init__
-    
-    def spawn(self) -> None:
-        self.rect.center = self.spawnPoint.center
-        self.active = True
-        self.visible = True
-
-        return
-    #end spawn
-    
-    def update(self, dt):
-        if isinstance(self.onThing,Log):
-            self.rect.center += self.onThing.velocity
-            
-        
-        return
-    #end update
-#end Frog
-    
-class TileGrid(Entity):
-    def __init__(self, tileSet: list[pg.surface.Surface], tileMap: list[list[int]], tileSize: int = 40) -> None:
-        super().__init__()
-        self.tileSet: list[pg.surface.Surface] = tileSet
-        self.tileMap: list[list[pg.Rect]] = tileMap
-        self.cellSize: int = tileSize
-        self.tiles: list[list[Renderable]] = list()
-        self.mapSize: list[int] = [len(self.tileMap[0]), len(self.tileMap)]
-        
-        for mapRow in range(self.mapSize[1]):
-            tileRow: list[Renderable] = list()
-            
-            for mapCol in range(self.mapSize[0]):
-                tileRow.append(
-                    RGBSurface(
-                        self.tileSet[self.tileMap[mapRow][mapCol]]
-                        ,[0,0]
-                    )
-                )
-                tileRow[-1].rect = pg.Rect((mapCol * self.cellSize, mapRow * self.cellSize),(self.cellSize,self.cellSize))
-            #end for
-            self.tiles.append(tileRow)
+        for state in self.states:
+            state.set_colorkey(SGE_COLORKEY_DEFAULT)
         #end for
         
         return
     #end __init__
     
-    def render(self, buffer: pg.surface.Surface) -> None:
-        for tileRow in self.tiles:
-            for tile in tileRow:
-                tile.render(buffer)
+    def render(self, renderBuffer:pg.surface.Surface) -> None:
+        renderBuffer.blit(self.states[self.state],self.rect)
+        
+        return
+    #end render
+    
+    def spawn(self) -> None:
+        self.rect.center = self.spawnPoint.center
+        self.state = 0
+        
+        return
+    #end spawn
+#end Frog
+    
+class GayFrogs(Entity):
+    def __init__(self) -> None:
+        super().__init__((0,0,20,20),pg.image.load('gfx/gayFrogs.bmp'))
+        imgSize: list[int] = self.img.get_size()
+        self.frogs: list[pg.surface.Surface] = [
+            self.img.subsurface(x,y,20,20)
+            for y in range(0,imgSize[1],20)
+            for x in range(0,imgSize[0],20)
+        ]
+        self.numStates: int = len(self.frogs)
+        self.rects: list[pg.Rect] = [pg.Rect(60 * i + 40,40,20,20) for i in range(self.numStates -1)]
+        self.states: int = [choice(list(range(1, self.numStates))) for i in range(self.numStates - 1)]
+        
+        return
+    #end __init__
+    
+    def render(self, renderBuffer: pg.surface.Surface) -> None:
+        for i in range(self.numStates - 1):
+            renderBuffer.blit(self.frogs[self.states[i]],self.rects[i])
+        
+        return
+    #end render
+    
+    def collide(self, other: Entity) -> bool:
+        for i in range(self.numStates - 1):
+            if self.states[i] != 0 and self.rects[i].colliderect(other.rect):
+                self.states[i] = 0
+                return True
+            #end if
+        #end for
+        
+        return False
+    #end collide
+    
+    def reset(self) -> None:
+        self.states: int = [choice(list(range(1, self.numStates))) for i in range(self.numStates - 1)]
+        
+        return
+    #end reset
+#end GayFrogs
+    
+class TrafficLine(Entity):
+    def __init__(self, carRect:pg.Rect, imgPath: str, speed: float, spawnChance: float, numCars: int, spacing: int) -> None:
+        super().__init__(carRect,pg.image.load(imgPath),(speed,0))
+        self.numCars: int = numCars
+        self.spacing: int = spacing
+        self.rects: list[pg.Rect] = [self.rect.move(self.spacing * i,0) for i in range(self.numCars)]
+        self.spawnChance: list[float] = [spawnChance,1 - spawnChance]
+        self.onRoad: list[bool] = [choices((True,False),self.spawnChance)[0] for i in range(self.numCars)]
+        
+        return
+    #end __init__
+    
+    def update(self, deltaTime: float) -> None:
+        for rect in self.rects:
+            rect.center += self.velocity
+        #end for
+        
+        return
+    #end update
+    
+    def render(self, renderBuffer: pg.surface.Surface) -> None:
+        for i in range(self.numCars):
+            if self.onRoad[i]:
+                renderBuffer.blit(self.img,self.rects[i])
+            #end if
+        #end for
+        
+        return
+    #end render
+    
+    def spawn(self, carIndex: int) -> None:
+        self.onRoad[carIndex] = choices((True,False),self.spawnChance)[0]
+        
+        return
+    #end onRoad
+    
+    def collide(self, other: Entity) -> bool:
+        for i in range(self.numCars):
+            if self.onRoad[i] and self.rects[i].colliderect(other.rect):
+                return True
+            #end if
+        #end for
+        
+        return False
+    #end collide
+#end TrafficLine
+    
+class Log(Entity):
+    def __init__(self, size: int = 2, pos: list[int] = [0,0], velocity: list[int] = [0,0]) -> None:
+        super().__init__((0,0,20,10),vel = velocity)
+        self.tileSet: pg.surface.Surface = pg.image.load("gfx/log.bmp")
+        self.tiles: list[pg.surface.Surface] = [
+            self.tileSet.subsurface((x,y,self.rect.w,self.rect.h))
+            for y in range(0,self.tileSet.get_size()[1], self.rect.h)
+            for x in range(0,self.tileSet.get_size()[0], self.rect.w)
+        ]
+        
+        for tile in self.tiles:
+            tile.set_colorkey(SGE_COLORKEY_DEFAULT)
+        #end for
+            
+        self.size: int = size
+        self.segments: list[int] = [0,2]
+        
+        while len(self.segments) < self.size:
+            self.segments.insert(-1,1)
+        #end while
+            
+        self.rect.w = 20 * size
+        self.img = pg.surface.Surface(self.rect.size)
+        
+        for i in range(size):
+            self.img.blit(self.tiles[self.segments[i]],(20 * i,0))
+        #end for
+        
+        return
+    #end __init__
+    
+    def spawn(self) -> None:
+        self.rect.center = self.spawnPoint.center
+        
+        return
+    #end spawn
+#end Log
+    
+class Turtle(Entity):
+    def __init__(self) -> None:
+        super().__init__()
+        
+        return
+    #end __init__
+#end Turtle
+    
+class Gator(Entity):
+    def __init__(self, offset: int = 0) -> None:
+        super().__init__((0,0,60,20),pg.image.load('gfx/gator.bmp'))
+        self.states: list[pg.surface.Surface] = [
+            self.img.subsurface((0,0,60,20))
+            ,self.img.subsurface((0,20,60,20))
+            ,pg.transform.rotate(self.img.subsurface((0,0,60,20)),180)
+            ,pg.transform.rotate(self.img.subsurface((0,20,60,20)),180)
+        ]
+        
+        for state in self.states:
+            state.set_colorkey(SGE_COLORKEY_DEFAULT)
+        #end for
+        
+        self.stateDelay: int = 500
+        self.stateDT: int = 0
+        self.stateIndex: int = 0
+        self.numStates: int = 2
+        self.startState: int = offset
+        
+        return
+    #end __init__
+    
+    def render(self, renderBuffer: pg.surface.Surface) -> None:
+        renderBuffer.blit(self.states[self.stateIndex],self.rect)
+        
+        return
+    #end render
+    
+    def update(self, deltaTime: float) -> None:
+        self.stateDT += deltaTime
+        
+        if self.stateDT >= self.stateDelay:
+            self.stateIndex = ((self.stateIndex + 1) % self.numStates) + self.startState
+            self.stateDT = 0
+        #end if
+        
+        return
+    #end update
+#end Gator
+    
+class RiverLine(Entity):
+    def __init__(self, rect:pg.Rect, speed: float = 1) -> None:
+        super().__init__(rect,vel=(speed, 0))
+        self.entities: list[Entity] = [
+            Gator()
+            ,Log(4)
+            ,Log(3)
+            ,Log(2)
+        ]
+        self.numEntities: int = len(self.entities)
+        self.numThingsInWater: int = 6
+        self.spacing: int = self.rect.w
+        
+        if speed >= 0:
+            self.spacing *= -1
+            self.entities[0].startState = 2
+        #endif
+        
+        self.rects: list[pg.Rect] = [self.rect.move(self.spacing * i,0) for i in range(self.numThingsInWater)]
+        self.thingsInWater: list[int] = [choice(list(range(self.numEntities))) for i in range(self.numThingsInWater)]
+        self.thingsShown: list[bool] = [choice([True,False]) for i in range(self.numThingsInWater)]
+        
+        return
+    #end __init__
+    
+    def spawn(self, i: int) -> None:
+        self.thingsShown[i] = choice([True,False])
+        self.thingsInWater[i] = choice(list(range(self.numEntities)))
+        
+        if self.velocity.x >= 0:
+            self.rects[i].right = 0
+        else:
+            self.rects[i].left = 399
+        #end if
+        
+        return
+    #end spawn
+    
+    def render(self, renderBuffer: pg.surface.Surface) -> None:
+        for i in range(self.numThingsInWater):
+            pg.draw.rect(renderBuffer,(255,0,255),self.rects[i],1)
+            
+            if self.thingsShown[i]:
+                self.entities[self.thingsInWater[i]].rect.center = self.rects[i].center
+                self.entities[self.thingsInWater[i]].render(renderBuffer)
+            #end if
+        #end for
+        
+        return
+    #end render
+    
+    def update(self, deltaTime:float) -> None:
+        for i in range(self.numThingsInWater):
+            self.rects[i].center += self.velocity
+        #end for
+            
+        for entity in self.entities:
+            entity.update(deltaTime)
+        #end for
+        
+        return
+    #end update
+#end RiverLine
+    
+class Header(Entity):
+    def __init__(self, size: list[int] = [400,20]) -> None:
+        super().__init__(((0,0),size))
+        self.font: pg.font.Font = pg.font.Font(size=self.rect.h)
+        
+        self.lives: Entity = Entity()
+        self.numLives: int = 5
+        self.lives.img = self.font.render("LIVES: %d" % self.numLives, False, (255,255,255))
+        self.lives.rect = self.lives.img.get_rect()
+        
+        self.score: Entity = Entity()
+        self.numScore: int = 0
+        self.score.img = self.font.render("SCORE: %s" % format(self.numScore,'0=6d'), False, (255,255,255))
+        self.score.rect = self.score.img.get_rect()
+        self.score.rect.centerx = self.rect.centerx
+        
+        self.time: Entity = Entity()
+        self.numSeconds: int = 100
+        self.time.img = self.font.render("TIME: %s" % format(self.numSeconds,'0=3d'), False, (255,255,255))
+        self.time.rect = self.time.img.get_rect()
+        self.time.rect.right = self.rect.right
+        
+        self.curTime: int = 0
+        
+        return
+    #end __init__
+    
+    def render(self, renderBuffer: pg.surface.Surface) -> None:
+        self.lives.render(renderBuffer)
+        self.score.render(renderBuffer)
+        self.time.render(renderBuffer)
+        
+        return
+    #end render
+    
+    def update(self, deltaTime: float) -> None:
+        self.curTime += deltaTime
+        
+        if self.curTime >= 1000:
+            self.numSeconds -= 1
+            self.curTime = 0
+            self.time.img = self.font.render("TIME: %s" % format(self.numSeconds,'0=3d'), False, (255,255,255))
+        #end if
+            
+        self.score.img = self.font.render("SCORE: %s" % format(self.numScore,'0=6d'), False, (255,255,255))
+        self.lives.img = self.font.render("LIVES: %d" % self.numLives, False, (255,255,255))
+        
+        return
+    #end update
+#end Header
+    
+class TileBG(Entity):
+    def __init__(self) -> None:
+        super().__init__((0,0,20,20))
+        self.tileSet: pg.surface.Surface = pg.image.load("gfx/tileSet.bmp")
+        self.tiles: list[pg.surface.Surface] = [
+            self.tileSet.subsurface((x,y,self.rect.w,self.rect.h))
+            for y in range(0,self.tileSet.get_size()[1], self.rect.h)
+            for x in range(0,self.tileSet.get_size()[0], self.rect.w)
+        ]
+        self.tileGridSize: list[list] = [20,15]
+        self.tileGrid: list[list[int]] = [
+            [pg.Rect(x * self.rect.w, y * self.rect.h,20,20) for x in range(self.tileGridSize[0])]
+            for y in range(self.tileGridSize[1])
+        ]
+        self.tileMap: list[int] = [
+            [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+            ,[1,1,2,5,1,2,1,1,2,1,1,2,5,1,2,5,1,2,1,1]
+            ,[2,4,7,2,2,7,2,2,7,4,2,7,2,2,7,2,2,7,4,2]
+            ,[7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7]
+            ,[7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7]
+            ,[7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7]
+            ,[7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7]
+            ,[1,5,1,1,1,1,1,1,5,1,1,1,5,1,1,1,5,5,1,1]
+            ,[1,1,1,1,1,5,1,1,1,1,1,1,1,5,1,1,1,1,1,5]
+            ,[6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6]
+            ,[3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3]
+            ,[6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6]
+            ,[3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3]
+            ,[1,1,1,5,1,5,1,1,5,1,1,1,1,1,5,1,1,5,1,1]
+            ,[1,5,1,1,1,1,1,1,1,1,5,1,1,1,1,1,5,1,1,5]
+        ]
+        
+        for y in range(self.tileGridSize[1]):
+            for x in range(self.tileGridSize[0]):
+                if self.tileMap[y][x] == 1 or self.tileMap[y][x] == 5:
+                    self.tileMap[y][x] = choice([1,5])
+        
+        self.waterTileOffset: int = 0
+        self.waterFrameDelay: int = 400
+        self.waterDT: int = 0
+        self.numWaterTiles: int = 4
+        
+        return
+    #end __init__
+    
+    def render(self, renderBuffer: pg.surface.Surface) -> None:
+        for row in range(self.tileGridSize[1]):
+            for col in range(self.tileGridSize[0]):
+                if self.tileMap[row][col] == 7:
+                    renderBuffer.blit(self.tiles[self.tileMap[row][col] + self.waterTileOffset],self.tileGrid[row][col])
+                else:
+                    renderBuffer.blit(self.tiles[self.tileMap[row][col]],self.tileGrid[row][col])
+                #end if
             #end for
         #end for
         
         return
     #end render
-#end TileGrid
     
-class FroggerState(GameState):
+    def update(self, deltaTime: float) -> None:
+        self.waterDT += deltaTime
+        if self.waterDT >= self.waterFrameDelay:
+            self.waterDT: int = 0
+            self.waterTileOffset = (self.waterTileOffset + 1) % self.numWaterTiles
+        #end if
+        
+        return
+    #end update
+#end Tile
+
+class Play(GameState):
     def __init__(self) -> None:
-        super().__init__('frogger',[400,300])
+        super().__init__([400,300])
         
-        self.screenRect: pg.Rect = pg.Rect([0,0],self.renderSize)
+        #set up background tiles
+        self.bg: TileBG = TileBG()
+        logSize: int = 3
+        self.riverRow1: RiverLine = RiverLine((-80,60,80,20),2)
+        self.riverRow2: RiverLine = RiverLine((400,80,80,20),-2)
+        self.riverRow3: RiverLine = RiverLine((-80,100,80,20),2)
+        self.riverRow4: RiverLine = RiverLine((400,120,80,20),-2)
+        self.semis: TrafficLine = TrafficLine((400,180,60,20), 'gfx/truck.bmp', -1, 0.5, 5, 100)
+        self.redCars: TrafficLine = TrafficLine((-30,202,30,16), 'gfx/redCar.bmp',3,0.5,6,-80)
+        self.purpleCars: TrafficLine = TrafficLine((399,222,38,16),'gfx/purpleCar.bmp',-2,0.5,6,80)
+        self.trucks: TrafficLine = TrafficLine((-36,242,36,16),'gfx/yellowTruck.bmp',2,0.5,6,-80)
+        self.gayFrogs: GayFrogs = GayFrogs()
+        self.frog: Frog = Frog(self.bg.tileGrid[13][9].topleft)
+        self.header: Header = Header()
         
-        self.tileCellSize: int = int(self.renderSize[0] / 20)
-
-        self.grass: pg.surface.Surface = pg.surface.Surface((self.tileCellSize,self.tileCellSize))
-        self.grass.fill((0,255,0))
-#         self.grass = pg.image.load('gfx/grass.png')
-
-        self.road: pg.surface.Surface = pg.surface.Surface((self.tileCellSize,self.tileCellSize))
-        self.road.fill((50,50,50))
-
-        self.water: pg.surface.Surface = pg.surface.Surface((self.tileCellSize,self.tileCellSize))
-        self.water.fill((0,0,255))
-        
-        self.tileSet: list[pg.surface.Surface] = [
-            self.grass
-            ,self.road
-            ,self.water
-        ]
-
-        self.tileMap: list[list[int]] = [
-            [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
-            ,[0,0,2,0,0,2,0,0,2,0,0,2,0,0,2,0,0,2,0,0]
-            ,[2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2]
-            ,[2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2]
-            ,[2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2]
-            ,[2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2]
-            ,[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
-            ,[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
-            ,[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
-            ,[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
-            ,[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
-            ,[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
-            ,[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
-            ,[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
-            ,[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
-        ]
-        
-        self.tileMapSize: list[int] = [len(self.tileMap),len(self.tileMap[0])]
-        self.tileGrid: TileGrid = TileGrid(self.tileSet,self.tileMap,self.tileCellSize)
-        
-        #set up frogs
-        self.frog: Frog = Frog(
-            [self.tileCellSize*0.75,self.tileCellSize*0.75]
-            , self.tileGrid.tiles[13][10].rect.move([self.tileCellSize * 0.125, self.tileCellSize * 0.125]).topleft
-        )
-        
-        self.blueFrog: Frog = Frog([self.tileCellSize,self.tileCellSize], self.tileGrid.tiles[1][2].rect.topleft, (0,0,100))
-        self.redFrog: Frog = Frog([self.tileCellSize,self.tileCellSize], self.tileGrid.tiles[1][5].rect.topleft, (100,0,0))
-        self.purpleFrog: Frog = Frog([self.tileCellSize,self.tileCellSize], self.tileGrid.tiles[1][8].rect.topleft, (100,0,100))
-        self.yellowFrog: Frog = Frog([self.tileCellSize,self.tileCellSize], self.tileGrid.tiles[1][11].rect.topleft, (200,200,0))
-        self.orangeFrog: Frog = Frog([self.tileCellSize,self.tileCellSize], self.tileGrid.tiles[1][14].rect.topleft, (200,100,0))
-        self.pinkFrog: Frog = Frog([self.tileCellSize,self.tileCellSize], self.tileGrid.tiles[1][17].rect.topleft, (200,0,200))
-        
-        self.gayFrogs: EntityGroup = EntityGroup([
-            self.blueFrog
-            ,self.redFrog
-            ,self.purpleFrog
-            ,self.yellowFrog
-            ,self.orangeFrog
-            ,self.pinkFrog
-        ])
-        
-        #set up gui text
-        self.numLives: int = 5
-        self.lives: Text = Text("LIVES: %d" % self.numLives, self.tileCellSize)
-        self.timeLeft: float = 90.0
-        self.time: Text = Text("TIME: %d" % ceil(self.timeLeft), self.tileCellSize)
-        self.time.rect.right = self.renderSize[0] - 1
-        self.numScore: int = 0
-        self.score: Text = Text("SCORE: %d" % self.numScore, self.tileCellSize)
-        self.score.rect.midtop = self.tileGrid.tiles[0][9].rect.midtop
-        
-        #set up trucks
-        carSize: list[int] = [self.tileCellSize * 2, self.tileCellSize * 0.75]
-        self.trucks: EntityGroup = EntityGroup()
-        self.numTrucks: int = 5
-        
-        for i in range(self.numTrucks):
-            self.trucks.add(Car(
-                carSize
-                , self.tileGrid.tiles[8][19].rect.move(self.tileCellSize,(self.tileCellSize - carSize[1]) / 2).topleft
-                , (200,200,200)
-                ,3
-            ))
-            self.trucks[-1].active = False
-        #end for
-            
-        self.truckInd: int = 0
-        self.truckSpawnPerc: float = 0.025
-        
-        #set up yellow cars
-        self.yellowCars: EntityGroup = EntityGroup()
-        carSize = [self.tileCellSize * 1.0, self.tileCellSize * 0.75]
-        for i in range(self.numTrucks):
-            self.yellowCars.add(Car(
-                carSize
-                ,self.tileGrid.tiles[9][0].rect.move(-self.tileCellSize * 2,(self.tileCellSize - carSize[1]) / 2).topleft
-                , (200,200,100)
-                ,-4.25
-            ))
-            self.yellowCars[-1].active = False
-        #end for
-            
-        self.yellowCarInd: int = 0
-        
-        #set up purple cars
-        self.purpleCars: EntityGroup = EntityGroup()
-        carSize = [self.tileCellSize * 1.0, self.tileCellSize * 0.75]
-        for i in range(self.numTrucks):
-            self.purpleCars.add(Car(
-                carSize
-                ,self.tileGrid.tiles[11][19].rect.move(self.tileCellSize,(self.tileCellSize - carSize[1]) / 2).topleft
-                , (200,100,200)
-                ,5
-            ))
-            self.purpleCars[-1].active = False
-        #end for
-            
-        self.purpleCarInd: int = 0
-            
-        #set up Blue cars
-        self.blueCars: EntityGroup = EntityGroup()
-        carSize = [self.tileCellSize * 1.0, self.tileCellSize * 0.75]
-        for i in range(self.numTrucks):
-            self.blueCars.add(Car(
-                carSize
-                ,self.tileGrid.tiles[12][0].rect.move(-self.tileCellSize * 2,(self.tileCellSize - carSize[1]) / 2).topleft
-                , (100,100,255)
-                ,-5.25
-            ))
-            self.blueCars[-1].active = False
-        #end for
-            
-        self.blueCarInd: int = 0
-        
-        #set up logs
-        logSize: list[int] = [self.tileCellSize * 2, self.tileCellSize * 0.5]
-        self.logs: EntityGroup = EntityGroup()
-        self.numLogs: int = 5
-        self.logSpawnLocs: list[pg.Rect] = [
-            self.tileGrid.tiles[2][0].rect.move(-self.tileCellSize * 5,(self.tileCellSize - logSize[1]) / 2)
-            ,self.tileGrid.tiles[3][-1].rect.move(self.tileCellSize,(self.tileCellSize - logSize[1]) / 2)
-            ,self.tileGrid.tiles[4][0].rect.move(-self.tileCellSize * 5,(self.tileCellSize - logSize[1]) / 2)
-            ,self.tileGrid.tiles[5][-1].rect.move(self.tileCellSize,(self.tileCellSize - logSize[1]) / 2)
-        ]
-        
-        for i in range(self.numLogs):
-            self.logs.add(Log(
-                logSize
-                , self.logSpawnLocs[0].topleft
-                , 0
-            ))
-            self.logs[-1].active = False
-        #end for
-        
-        logSize: list[int] = [self.tileCellSize * 3, self.tileCellSize * 0.5]
-        for i in range(self.numLogs):
-            self.logs.add(Log(
-                logSize
-                , self.logSpawnLocs[0].topleft
-                , 0
-            ))
-            self.logs[-1].active = False
-        #end for
-            
-        logSize: list[int] = [self.tileCellSize * 4, self.tileCellSize * 0.5]
-        for i in range(self.numLogs):
-            self.logs.add(Log(
-                logSize
-                , self.logSpawnLocs[0].topleft
-                , 0
-            ))
-            self.logs[-1].active = False
-        #end for
-            
-        logSize: list[int] = [self.tileCellSize * 5, self.tileCellSize * 0.5]
-        for i in range(self.numLogs):
-            self.logs.add(Log(
-                logSize
-                , self.logSpawnLocs[0].topleft
-                , 0
-            ))
-            self.logs[-1].active = False
-        #end for
-            
-        self.logInd: int = 0
-        self.numLogs = len(self.logs)
-        self.logSpawnPerc: float = 0.07                
-        
-        #append the entities to the entity list
-        self.entities.append(self.tileGrid)
-        
-        self.entities.append(self.gayFrogs)
-        
-        self.entities.append(self.trucks)
+        self.entities.append(self.bg)
+        self.entities.append(self.riverRow1)
+        self.entities.append(self.riverRow2)
+        self.entities.append(self.riverRow3)
+        self.entities.append(self.riverRow4)
+        self.entities.append(self.semis)
+        self.entities.append(self.redCars)
         self.entities.append(self.purpleCars)
-        self.entities.append(self.yellowCars)
-        self.entities.append(self.blueCars)
-        
-        self.entities.append(self.logs)
-        
+        self.entities.append(self.trucks)
+        self.entities.append(self.gayFrogs)
         self.entities.append(self.frog)
-        
-        self.entities.append(self.lives)
-        self.entities.append(self.time)
-        self.entities.append(self.score)
+        self.entities.append(self.header)
         
         return
     #end __init__
     
-    def update(self) -> None:
-        #handle key presses
-        if pg.K_UP in self.keysPressed:
-            self.frog.rect.bottom -= self.tileCellSize
+    def onKeyPressed(self, key: int) -> None:
+        if key == pg.K_RIGHT:
+            self.frog.state = 3
+            self.frog.rect.x += self.frog.speed
             
-            if self.frog.rect.top < 0:
-                self.frog.rect.top = 0
+            if self.frog.rect.right >= self.rect.w:
+                self.frog.rect.right = self.rect.w - 1
             #end if
-                
-            #snap to nearest tile
-            row: int = int(self.frog.rect.centery / self.tileCellSize)
-            col: int = int(self.frog.rect.centerx / self.tileCellSize)
-            self.frog.rect.center = self.tileGrid.tiles[row][col].rect.center
-            
         #end if
-        if pg.K_DOWN in self.keysPressed:
-            self.frog.rect.bottom += self.tileCellSize
-            
-            if self.frog.rect.bottom >= self.renderSize[1]:
-                self.frog.rect.bottom = self.renderSize[1] - 1
-            #end if
-                
-            #snap to nearest tile
-            row: int = int(self.frog.rect.centery / self.tileCellSize)
-            col: int = int(self.frog.rect.centerx / self.tileCellSize)
-            self.frog.rect.center = self.tileGrid.tiles[row][col].rect.center
-        #end if
-        if pg.K_LEFT in self.keysPressed:
-            self.frog.rect.right -= self.tileCellSize
+        
+        if key == pg.K_LEFT:
+            self.frog.state = 1
+            self.frog.rect.x -= self.frog.speed
             
             if self.frog.rect.left < 0:
                 self.frog.rect.left = 0
             #end if
-                
-            #snap to nearest tile
-            row: int = int(self.frog.rect.centery / self.tileCellSize)
-            col: int = int(self.frog.rect.centerx / self.tileCellSize)
-            self.frog.rect.center = self.tileGrid.tiles[row][col].rect.center
         #end if
-        if pg.K_RIGHT in self.keysPressed:
-            self.frog.rect.right += self.tileCellSize
             
-            if self.frog.rect.right >= self.renderSize[0]:
-                self.frog.rect.right = self.renderSize[0] - 1
+        if key == pg.K_UP:
+            self.frog.state = 0
+            self.frog.rect.y -= self.frog.speed
+            
+            if self.frog.rect.top <= self.bg.rect.h:
+                self.frog.rect.top = self.bg.rect.h
             #end if
-                
-            #snap to nearest tile
-            row: int = int(self.frog.rect.centery / self.tileCellSize)
-            col: int = int(self.frog.rect.centerx / self.tileCellSize)
-            self.frog.rect.center = self.tileGrid.tiles[row][col].rect.center
         #end if
-        
-        #spawn trucks
-        if random() <= self.truckSpawnPerc:
-            #truck is off screen
-            if self.trucks[self.truckInd].rect.right < 0 or self.trucks[self.truckInd].rect.left >= self.renderSize[0]:
-                self.trucks[self.truckInd].spawn()
-                self.trucks[self.truckInd].rect.left = max([
-                    x.rect.right for x in self.trucks]) + self.tileCellSize * randint(1,3)
-                self.truckInd = (self.truckInd + 1) % self.numTrucks
+            
+        if key == pg.K_DOWN:
+            self.frog.state = 2
+            self.frog.rect.y += self.frog.speed
+            
+            if self.frog.rect.bottom >= self.rect.h:
+                self.frog.rect.bottom = self.rect.h - 1
             #end if
         #end if
         
-        #spawn purple cars
-        if random() <= self.truckSpawnPerc:
-            if self.purpleCars[self.purpleCarInd].rect.right < 0 or self.purpleCars[self.purpleCarInd].rect.left >= self.renderSize[0]:
-                self.purpleCars[self.purpleCarInd].spawn()
-                self.purpleCars[self.purpleCarInd].rect.left = max([
-                    x.rect.right for x in self.purpleCars]) + self.tileCellSize * randint(1,3)
-                self.purpleCarInd = (self.purpleCarInd + 1) % self.numTrucks
-            #end if
-        #end if
-                
-        #spawn yellow cars
-        if random() <= self.truckSpawnPerc:
-            if self.yellowCars[self.yellowCarInd].rect.right < 0 or self.yellowCars[self.yellowCarInd].rect.left >= self.renderSize[0]:
-                self.yellowCars[self.yellowCarInd].spawn()
-                self.yellowCars[self.yellowCarInd].rect.right = min([
-                    x.rect.left for x in self.yellowCars]) - self.tileCellSize * randint(1,3)
-                self.yellowCarInd = (self.yellowCarInd + 1) % self.numTrucks
-            #end if
-        #end if
-                
-        #spawn Blue cars
-        if random() <= self.truckSpawnPerc:
-            if self.blueCars[self.blueCarInd].rect.right < 0 or self.blueCars[self.blueCarInd].rect.left >= self.renderSize[0]:
-                self.blueCars[self.blueCarInd].spawn()
-                self.blueCars[self.blueCarInd].rect.right = min([
-                    x.rect.left for x in self.blueCars]) - self.tileCellSize * randint(1,3)
-                self.blueCarInd = (self.blueCarInd + 1) % self.numTrucks
-            #end if
-        #end if
-                
-        #spawn logs
-        if random() <= self.logSpawnPerc:
-            #try 5 times
-            for i in range(5):
-                log = choice(self.logs)
-                spawn = choice(self.logSpawnLocs)
-                
-                if log.rect.right < 0 or log.rect.left >= self.renderSize[0]:
-                    log.spawnPoint = spawn
-                    log.spawn()
-                    
-                    if spawn.left < 0:
-                        log.velocity.x = 3
-                    else:
-                        log.velocity.x = -3
-                    #end if
-                    
-                    break
-                #end if
-            #end for
-        #end if
-                
-        #handle bounds and collisions
-                
-        #frog truck collision
-        if any([truck.rect.colliderect(self.frog) for truck in self.trucks]):
-            self.frog.spawn()
-            self.numLives -= 1
-            self.lives.updateText("LIVES: %d" % self.numLives)
-        #end if
-            
-        #frog purple Car collision
-        if any([car.rect.colliderect(self.frog) for car in self.purpleCars]):
-            self.frog.spawn()
-            self.numLives -= 1
-            self.lives.updateText("LIVES: %d" % self.numLives)
-        #end if
-            
-        #frog yellow Car collision
-        if any([car.rect.colliderect(self.frog) for car in self.yellowCars]):
-            self.frog.spawn()
-            self.numLives -= 1
-            self.lives.updateText("LIVES: %d" % self.numLives)
-        #end if
-            
-        #frog Blue Car collision
-        if any([car.rect.colliderect(self.frog) for car in self.blueCars]):
-            self.frog.spawn()
-            self.numLives -= 1
-            self.lives.updateText("LIVES: %d" % self.numLives)
-        #end if
+        #snap frog center to tile grid
+        tileX: int = int(self.frog.rect.x / self.bg.rect.w)
+        tileY: int = int(self.frog.rect.y / self.bg.rect.w)
+        self.frog.rect.center = self.bg.tileGrid[tileY][tileX].center
         
-        #frog water/log/turtle collision
-        self.frog.onThing = None
+        if key==pg.K_SPACE:
+            strimg = pg.image.tostring(self.img,'RGB',False)
+            img = Image.frombytes('RGB',self.img.get_size(),strimg)
+            img.save("gfx/screenshot.png")
+            
+        return
+    #end onKeyPressed
+    
+    def update(self, deltaTime: float) -> None:
+        super().update(deltaTime)
         
-        for log in self.logs:
-            if log.rect.colliderect(self.frog.rect):
-                self.frog.onThing = log
-                break
+        #handle bounds
+        #semis
+        for i in range(self.semis.numCars):
+            if self.semis.rects[i].right + 40 < 0:
+                self.semis.rects[i].left = self.rect.w
+                self.semis.spawn(i)
             #end if
         #end for
-
-        if self.frog.rect.top < 0:
-            self.frog.rect.top = 0
-        #end if
-
-        if self.frog.rect.bottom >= self.renderSize[1]:
-            self.frog.rect.bottom = self.renderSize[1] - 1
-        #end if
-
-        if self.frog.rect.left < 0:
-            self.frog.rect.left = 0
-        #end if
-
-        if self.frog.rect.right >= self.renderSize[0]:
-            self.frog.rect.right = self.renderSize[0] - 1
+                
+        #red cars
+        for i in range(self.redCars.numCars):
+            if self.redCars.rects[i].left - 45 >= self.rect.w:
+                self.redCars.rects[i].left = -30
+                self.redCars.spawn(i)
+            #end if
+        #end for
+                
+        #purple cars
+        for i in range(self.purpleCars.numCars):
+            if self.purpleCars.rects[i].right + 41 < 0:
+                self.purpleCars.rects[i].left = self.rect.w - 1
+                self.purpleCars.spawn(i)
+            #end if
+        #end for
+                
+        #trucks
+        for i in range(self.trucks.numCars):
+            if self.trucks.rects[i].left - 43 >= self.rect.w:
+                self.trucks.rects[i].left = -36
+                self.trucks.spawn(i)
+            #end if
+        #end for
+        
+        #river row 1
+        for i in range(self.riverRow1.numThingsInWater):
+            if self.riverRow1.rects[i].left >= self.rect.w:
+                self.riverRow1.spawn(i)
+            #end if
+        #end for
+                
+        #river row 2
+        for i in range(self.riverRow1.numThingsInWater):
+            if self.riverRow2.rects[i].right < 0:
+                self.riverRow2.spawn(i)
+            #end if
+        #end for
+                
+        #river row 3
+        for i in range(self.riverRow3.numThingsInWater):
+            if self.riverRow3.rects[i].left >= self.rect.w:
+                self.riverRow3.spawn(i)
+            #end if
+        #end for
+                
+        #check for collisions
+        if self.trucks.collide(self.frog):
+            self.frog.spawn()
+            self.header.numLives -= 1
         #end if
             
-        if self.frog.onThing != None:
-            pass
-        elif any([any([tile.rect.colliderect(self.frog.rect) for tile in row]) for row in self.tileGrid.tiles[2:6]]):
+        if self.purpleCars.collide(self.frog):
             self.frog.spawn()
-            self.numLives -= 1
-            self.lives.updateText("LIVES: %d" % self.numLives)
+            self.header.numLives -= 1
         #end if
-                    
-        #update gui text
-        self.timeLeft -= (self.deltaTime / 1000)
-        self.lives.updateText("LIVES: %d" % self.numLives)
-        self.time.updateText("TIME: %d" % self.timeLeft)
-        
-        super().update()
+            
+        if self.redCars.collide(self.frog):
+            self.frog.spawn()
+            self.header.numLives -= 1
+        #end if
+            
+        if self.semis.collide(self.frog):
+            self.frog.spawn()
+            self.header.numLives -= 1
+        #end if
+            
+        if self.gayFrogs.collide(self.frog):
+            self.frog.spawn()
+            self.header.numScore += self.header.numSeconds
+            self.header.numSeconds = 100
+        #end if
+            
+        #check for end game
+        if all([x == 0 for x in self.gayFrogs.states]):
+            self.gayFrogs.reset()
+            self.frog.spawn()
+        #end if
         
         return
     #end update
-#end BreakoutState
+#end Play
+
+class Frogger(Game):
+    def __init__(self) -> None:
+        super().__init__("Frogger",[800,600])
+        
+        self.playState: GameState = Play()
+        self.state = self.playState
+        
+        return
+    #end __init__
+#end Frogger
 
 def main() -> None:
-    game: Game = Game('Frogger',[800,600],FroggerState())
-    game.run()
+    frogger: Frogger = Frogger()
+    frogger.run()
     
     return
 #end main
