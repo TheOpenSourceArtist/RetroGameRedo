@@ -250,9 +250,7 @@ class RiverLine(Entity):
     #end spawn
     
     def render(self, renderBuffer: pg.surface.Surface) -> None:
-        for i in range(self.numThingsInWater):
-            pg.draw.rect(renderBuffer,(255,0,255),self.rects[i],1)
-            
+        for i in range(self.numThingsInWater):            
             if self.thingsShown[i]:
                 self.entities[self.thingsInWater[i]].rect.center = self.rects[i].center
                 self.entities[self.thingsInWater[i]].render(renderBuffer)
@@ -403,10 +401,10 @@ class Play(GameState):
         #set up background tiles
         self.bg: TileBG = TileBG()
         logSize: int = 3
-        self.riverRow1: RiverLine = RiverLine((-80,60,80,20),2)
-        self.riverRow2: RiverLine = RiverLine((400,80,80,20),-2)
-        self.riverRow3: RiverLine = RiverLine((-80,100,80,20),2)
-        self.riverRow4: RiverLine = RiverLine((400,120,80,20),-2)
+        self.riverRow1: RiverLine = RiverLine((-80,60,80,20),1)
+        self.riverRow2: RiverLine = RiverLine((400,80,80,20),-1)
+        self.riverRow3: RiverLine = RiverLine((-80,100,80,20),1)
+        self.riverRow4: RiverLine = RiverLine((400,120,80,20),-1)
         self.semis: TrafficLine = TrafficLine((400,180,60,20), 'gfx/truck.bmp', -1, 0.5, 5, 100)
         self.redCars: TrafficLine = TrafficLine((-30,202,30,16), 'gfx/redCar.bmp',3,0.5,6,-80)
         self.purpleCars: TrafficLine = TrafficLine((399,222,38,16),'gfx/purpleCar.bmp',-2,0.5,6,80)
@@ -525,7 +523,7 @@ class Play(GameState):
         #end for
                 
         #river row 2
-        for i in range(self.riverRow1.numThingsInWater):
+        for i in range(self.riverRow2.numThingsInWater):
             if self.riverRow2.rects[i].right < 0:
                 self.riverRow2.spawn(i)
             #end if
@@ -535,6 +533,13 @@ class Play(GameState):
         for i in range(self.riverRow3.numThingsInWater):
             if self.riverRow3.rects[i].left >= self.rect.w:
                 self.riverRow3.spawn(i)
+            #end if
+        #end for
+                
+        #river row 4
+        for i in range(self.riverRow4.numThingsInWater):
+            if self.riverRow4.rects[i].right < 0:
+                self.riverRow4.spawn(i)
             #end if
         #end for
                 
