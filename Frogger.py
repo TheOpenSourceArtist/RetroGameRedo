@@ -19,8 +19,20 @@ class Frog(Entity):
             state.set_colorkey(SGE_COLORKEY_DEFAULT)
         #end for
         
+        self.mount: pg.Rect = None
+        
         return
     #end __init__
+    
+    def update(self, deltaTime: float) -> None:
+        super().update(deltaTime)
+        
+        if isinstance(self.mount,Entity):
+            self.rect.center += self.mount.velocity
+        #end if
+        
+        return
+    #end update
     
     def render(self, renderBuffer:pg.surface.Surface) -> None:
         renderBuffer.blit(self.states[self.state],self.rect)
@@ -235,6 +247,19 @@ class RiverLine(Entity):
         
         return
     #end __init__
+    
+    def collide(self, other: Entity) -> None:
+        for i in range(self.numThingsInWater):
+            self.entities[self.thingsInWater[i]].rect.center = self.rects[i].center
+            if self.entities[self.thingsInWater[i]].rect.colliderect(other.rect):
+                if self.thingsShown[i]:
+                    return True
+                #end if
+            #end if
+        #end for
+        
+        return False
+    #end mount
     
     def spawn(self, i: int) -> None:
         self.thingsShown[i] = choice([True,False])
@@ -570,9 +595,54 @@ class Play(GameState):
             self.header.numSeconds = 100
         #end if
             
+        self.frog.mount = None
+        
+        if self.riverRow4.collide(self.frog):
+            self.frog.mount = self.riverRow4
+        #end if
+            
+        if self.riverRow3.collide(self.frog):
+            self.frog.mount = self.riverRow3
+        #end if
+            
+        if self.riverRow2.collide(self.frog):
+            self.frog.mount = self.riverRow2
+        #end if
+            
+        if self.riverRow1.collide(self.frog):
+            self.frog.mount = self.riverRow1
+        #end if
+            
+        if self.frog.mount == None:
+            for y in range(3,7):
+                for x in range(20):
+                    if self.bg.tileGrid[y][x].colliderect(self.frog):
+                        self.frog.spawn()
+                        self.header.numLives -= 1
+                    #end if
+                #end for
+            #end for
+        #end if
+                        
+        if self.frog.rect.left < 0:
+            self.frog.rect.left = 0
+        #end if
+        
+        if self.frog.rect.right >= self.rect.w:
+            self.frog.rect.right = self.rect.w - 1
+        #end if
+        
+        if self.frog.rect.top < 0:
+            self.frog.rect.top = 0
+        #end if
+        
+        if self.frog.rect.bottom >= self.rect.h:
+            self.frog.rect.bottom = self.rect.h - 1
+            
         #check for end game
         if all([x == 0 for x in self.gayFrogs.states]):
             self.gayFrogs.reset()
+            self.header.numScore += 1000
             self.frog.spawn()
         #end if
         
