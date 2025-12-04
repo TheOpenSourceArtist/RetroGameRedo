@@ -15,6 +15,17 @@ LIGHT: list[int] = [200,200,200]
 WHITE: list[int] = [255,255,255]
 TRANSPARENT: list[int] = [255,0,255]
 
+class TileMap(Entity):
+    def __init__(self) -> None:
+        super().__init__((0,0,int(CANVAS_SIZE[0]*0.9),int(CANVAS_SIZE[1]*0.9)))
+        self.img.fill(BLACK)
+        self.numMapRows: int = 10
+        self.numMapCols: int = 10
+        
+        return
+    #end __init__
+#end TileMap
+
 class Canvas(Entity):
     def __init__(self) -> None:
         super().__init__((PANEL_SIZE[0],0,CANVAS_SIZE[0],CANVAS_SIZE[1]))
@@ -59,13 +70,13 @@ class TileSelector(Entity):
         self.lblTileHeight: Entity = Entity(textBG.get_rect(),textBG)
         self.lblTileHeight.rect.midtop = self.lblTileWidth.rect.midbottom
         
-        self.numTileCols: int = int(self.masterTileSetSize[0] / self.tileWidth)
-        self.numTileRows: int = int(self.masterTileSetSize[1] / self.tileHeight)
+        self.numTileCols: int = round(self.masterTileSetSize[0] / self.tileWidth)
+        self.numTileRows: int = round(self.masterTileSetSize[1] / self.tileHeight)
         self.selected: pg.Rect = pg.Rect(
             0
             ,0
-            ,int(self.tileSetPreview.rect.w / self.numTileCols)
-            ,int(self.tileSetPreview.rect.h / self.numTileRows)
+            ,round(self.tileSetPreview.rect.w / self.numTileCols)
+            ,round(self.tileSetPreview.rect.h / self.numTileRows)
         )
         self.selectedOutline: Entity = Entity(self.selected)
         self.selectedOutline.img.fill(TRANSPARENT)
@@ -123,10 +134,13 @@ class Editor(GameState):
         self.panel: Panel = Panel()
         self.tileSelector: TileSelector = TileSelector()
         self.canvas: Canvas = Canvas()
+        self.tileMap: TileMap = TileMap()
+        self.tileMap.rect.center = self.canvas.rect.center
         
         self.entities.append(self.panel)
         self.entities.append(self.tileSelector)
         self.entities.append(self.canvas)
+        self.entities.append(self.tileMap)
         
         return
     #end __init__
@@ -166,6 +180,6 @@ def main() -> None:
 #end main
 
 if __name__ == '__main__':
-#     argv.append('5723b94c74e7e493af7298474951.png')
+    argv.append('5723b94c74e7e493af7298474951.png')
     main()
 #end if
