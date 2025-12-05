@@ -6,11 +6,11 @@ pg.init()
 
 class Entity:
     def __init__(self, rect: pg.Rect = (0,0,0,0), img:pg.surface.Surface = None, vel: list[float] = [0,0], accel: list[float] = [0,0]) -> None:
-        self.active: bool = True
-        self.visible: bool = True;
-        self.solid: bool = True;
-        self.rect: pg.Rect = pg.Rect(rect)
-        self.img: pg.surface.Surface = img
+        self.active: bool = True #should run update
+        self.visible: bool = True #should run render
+        self.solid: bool = True #should handle collisions
+        self.rect: pg.Rect = pg.Rect(rect) #size and position
+        self.img: pg.surface.Surface = img #image pixel data
         
         if not isinstance(self.img,pg.surface.Surface):
             self.img = pg.surface.Surface(self.rect.size)
@@ -42,7 +42,7 @@ class Entity:
             if not self.solid or not other.solid:
                 return False
             else:
-                return self.rect.collide
+                return self.rect.colliderect(other.rect)
         else:
             return False
         #end if
@@ -126,6 +126,11 @@ class GameState(Entity):
         
         return
     #end onMousePosUpdate
+
+    def onJoyButtonPressed(self, button: int) -> None:
+
+        return
+    #end onJoyButtonPressed
 #end GameState
     
 class Game(Entity):
@@ -188,6 +193,10 @@ class Game(Entity):
             elif event.type == pg.MOUSEBUTTONUP:
                 if isinstance(self.state,GameState):
                     self.state.onMouseButtonReleased(event.button)
+                #end if
+            elif event.type == pg.JOYBUTTONDOWN:
+                if isinstance(self.state,GameState):
+                    self.state.onJoyButtonPressed(event.button)
                 #end if
             #end if
         #end for
