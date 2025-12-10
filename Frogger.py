@@ -418,6 +418,175 @@ class TileBG(Entity):
         return
     #end update
 #end Tile
+    
+class Logo(Entity):
+    def __init__(self) -> None:
+        super().__init__((0,0,252,46), pg.image.load('gfx/froggerLogo.bmp'))
+        self.frames: list[pg.surface.Surface] = list()
+        
+        for frameRow in range(0,self.img.get_size()[1],self.rect.h):
+            for frameCol in range(0,self.img.get_size()[0],self.rect.w):
+                self.frames.append(self.img.subsurface((frameCol,frameRow,self.rect.w,self.rect.h)))
+            #end for
+        #end for
+        
+        self.frameNum: int = 0
+        self.numFrames: int = len(self.frames)
+        self.frameTimer: int = 200
+        self.frameTimeDelta: int = 0
+        self.angle: float = -5
+        self.dangle: float = 0.0
+        self.ddangle: float = 0.1
+        self.maxAngleDelta: int = 5
+        
+        return
+    #end __init__
+    
+    def render(self, renderBuffer: pg.surface.Surface) -> None:
+        rotated: pg.surface.Surface = pg.transform.rotate(self.frames[self.frameNum],self.angle)
+        rotated.set_colorkey(SGE_COLORKEY_DEFAULT)
+        rotatedRect: pg.Rect = rotated.get_rect()
+        rotatedRect.center = self.rect.center
+        renderBuffer.blit(rotated, rotatedRect)
+        
+        return
+    #end render
+    
+    def update(self, deltaTime: float) -> None:
+        self.frameTimeDelta += deltaTime
+        
+        if self.frameTimeDelta >= self.frameTimer:
+            self.frameTimeDelta = 0
+            self.frameNum = (self.frameNum + 1) % self.numFrames
+        #end if
+        
+        self.dangle += self.ddangle
+        self.angle += self.dangle
+        
+        if self.dangle >= 1:
+            self.ddangle *= -1
+        elif self.dangle <= -1:
+            self.ddangle *= -1
+        #end if
+        
+        return
+    #end update
+#end Logo
+    
+class Selector(Entity):
+    def __init__(self) -> None:
+        super().__init__((0,0,225,35))
+        self.leftFrog: Frog = Frog()
+        self.rightFrog: Frog = Frog()
+        
+        return
+    #end __init__
+    
+    def render(self, renderBuffer: pg.surface.Surface) -> None:
+        self.leftFrog.render(renderBuffer)
+        self.rightFrog.render(renderBuffer)
+        
+        return
+    #end render
+    
+    def update(self, deltaTime:float) -> None:
+        self.leftFrog.rect.midright = self.rect.midleft
+        self.rightFrog.rect.midleft = self.rect.midright
+        
+        return
+    #end update
+#end Selector
+    
+class Menu(GameState):
+    def __init__(self) -> None:
+        super().__init__([400,300])
+        self.tileBG: TileBG = TileBG()
+        
+        self.tileBG.tileMap = [
+            [2,4,2,2,2,2,2,2,2,4,2,2,2,2,2,2,2,2,4,2]
+            ,[7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7]
+            ,[7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7]
+            ,[7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7]
+            ,[7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7]
+            ,[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+            ,[1,5,1,1,1,1,1,1,5,1,1,1,5,1,1,1,5,5,1,1]
+            ,[1,1,1,1,1,5,1,1,1,1,1,1,1,5,1,1,1,1,1,5]
+            ,[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+            ,[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+            ,[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+            ,[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+            ,[1,1,1,5,1,5,1,1,5,1,1,1,1,1,5,1,1,5,1,1]
+            ,[1,5,1,1,1,1,1,1,1,1,5,1,1,1,1,1,5,1,1,5]
+            ,[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+        ]
+        
+        for row in range(self.tileBG.tileGridSize[1]):
+            for col in range(self.tileBG.tileGridSize[0]):
+                if self.tileBG.tileMap[row][col] in (1,5):
+                    self.tileBG.tileMap[row][col] = choice([5,1])
+                #end if
+            #end for
+        #end for
+        
+        self.logo: Logo = Logo()
+        self.logo.rect.midtop = self.rect.midtop
+        self.logo.rect.y += self.logo.rect.h * 0.5
+        
+        self.player1: Entity = Entity((0,0,162,31),pg.image.load('gfx/1player.bmp'))
+        self.player1.rect.midtop = self.logo.rect.midbottom
+        self.player1.rect.y += self.player1.rect.h * 2
+        
+        self.player2: Entity = Entity((0,0,163,33),pg.image.load('gfx/2player.bmp'))
+        self.player2.rect.midtop = self.player1.rect.midbottom
+        self.player2.rect.y += self.player2.rect.h * 0.5
+        
+        self.highScore: Entity = Entity((0,0,210,33),pg.image.load('gfx/highScore.bmp'))
+        self.highScore.rect.midtop = self.player2.rect.midbottom
+        self.highScore.rect.y += self.highScore.rect.h * 0.5
+        
+        self.selector: Selector = Selector()
+        self.selector.rect.center = self.player1.rect.center
+        self.selectorRects: list[pg.Rect] = [
+            self.player1.rect
+            ,self.player2.rect
+            ,self.highScore.rect
+        ]
+        self.selectorRectNum: int = 0
+        
+        self.entities.append(self.tileBG)
+        self.entities.append(self.logo)
+        self.entities.append(self.player1)
+        self.entities.append(self.player2)
+        self.entities.append(self.highScore)
+        self.entities.append(self.selector)
+        
+        return
+    #end __init__
+    
+    def update(self, deltaTime:float) -> None:
+        super().update(deltaTime)
+        self.selector.rect = self.selectorRects[self.selectorRectNum] 
+        
+        return
+    #end update
+    
+    def onKeyPressed(self, key: int) -> None:
+        if key == pg.K_DOWN:
+            self.selectorRectNum = (self.selectorRectNum + 1) % 3
+            self.selector.rect = self.selectorRects[self.selectorRectNum]
+        elif key == pg.K_UP:
+            self.selectorRectNum -= 1
+            
+            if self.selectorRectNum < 0:
+                self.selectorRectNum = 2
+            #end if
+                
+            self.selector.rect = self.selectorRects[self.selectorRectNum]
+        #end if        
+        
+        return
+    #end onKeyReleased
+#end Menu
 
 class Play(GameState):
     def __init__(self) -> None:
@@ -654,8 +823,16 @@ class Frogger(Game):
     def __init__(self) -> None:
         super().__init__("Frogger",[800,600])
         
+        self.menuState: GameState = Menu()
         self.playState: GameState = Play()
-        self.state = self.playState
+        
+        self.states: list[GameState] = [
+            self.menuState
+            ,self.playState
+        ]
+        self.stateNum: int = 0
+        
+        self.switchState(self.states[self.stateNum])
         
         return
     #end __init__
