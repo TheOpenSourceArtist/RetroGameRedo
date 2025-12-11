@@ -1,6 +1,11 @@
 from SimplerGE import *
-from random import choices, choice
+from random import choices, choice, randint
 from PIL import Image
+
+GAMESTATE_MENU: int = 0
+GAMESTATE_PLAY_1P: int = 1
+GAMESTATE_PLAY_2P: int = 2
+GAMESTATE_HIGH_SCORE: int = 3
 
 class Frog(Entity):
     def __init__(self, spawnPoint: list[int] = [0,0]) -> None:
@@ -298,6 +303,39 @@ class RiverLine(Entity):
     #end update
 #end RiverLine
     
+class BloodSport(Entity):
+    def __init__(self) -> None:
+        super().__init__((0,0,10,10))
+        self.img.fill(SGE_COLORKEY_DEFAULT)
+        pg.draw.circle(self.img,(100,0,25),self.rect.center,self.rect.w/2)
+        self.visible = False
+        self.numSpots: int = 5
+        self.spots: list[pg.surface.Surface] = [
+            Entity((0,0,5,5))
+            for x in range(self.numSpots)
+        ]
+        
+        for spot in self.spots:
+            v: pg.math.Vector2 = pg.math.Vector2.from_polar([randint(5,10),randint(0,359)])
+            spot.img.fill(SGE_COLORKEY_DEFAULT)
+            pg.draw.circle(spot.img,(100,0,25),spot.rect.center,2)
+            spot.rect.center = v
+        #end for
+        
+        return
+    #end __init__
+    
+    def render(self, renderBuffer: pg.surface.Surface) -> None:
+        super().render(renderBuffer)
+        
+        for spot in self.spots:
+            renderBuffer.blit(spot.img,(self.rect.centerx + spot.rect.centerx, self.rect.centery + spot.rect.centery))
+        #end for
+        
+        return
+    #end render
+#end BloodSport
+    
 class Header(Entity):
     def __init__(self, size: list[int] = [400,20]) -> None:
         super().__init__(((0,0),size))
@@ -479,6 +517,10 @@ class Selector(Entity):
         self.leftFrog: Frog = Frog()
         self.rightFrog: Frog = Frog()
         
+        self.frogStateTimer: int = 500
+        self.frogStateTimeDelta: int = 0
+        self.frogState: int = 0
+        
         return
     #end __init__
     
@@ -492,6 +534,15 @@ class Selector(Entity):
     def update(self, deltaTime:float) -> None:
         self.leftFrog.rect.midright = self.rect.midleft
         self.rightFrog.rect.midleft = self.rect.midright
+        
+        self.frogStateTimeDelta += deltaTime
+        
+        if self.frogStateTimeDelta >= self.frogStateTimer:
+            self.frogStateTimeDelta = 0
+            self.frogState = (self.frogState + 1) % 4
+            self.leftFrog.state = self.frogState
+            self.rightFrog.state = self.frogState
+        #end if
         
         return
     #end update
@@ -585,6 +636,14 @@ class Menu(GameState):
         #end if        
         
         return
+    #end onKeyPressed
+    
+    def onKeyReleased(self, key: int) -> None:
+        if key == pg.K_SPACE or key == pg.K_RETURN:
+            if self.selector.collide(self.player1):
+                self.exitCode = 1
+        
+        return
     #end onKeyReleased
 #end Menu
 
@@ -606,12 +665,14 @@ class Play(GameState):
         self.gayFrogs: GayFrogs = GayFrogs()
         self.frog: Frog = Frog(self.bg.tileGrid[13][9].topleft)
         self.header: Header = Header()
+        self.blood: BloodSport = BloodSport()
         
         self.entities.append(self.bg)
         self.entities.append(self.riverRow1)
         self.entities.append(self.riverRow2)
         self.entities.append(self.riverRow3)
         self.entities.append(self.riverRow4)
+        self.entities.append(self.blood)
         self.entities.append(self.semis)
         self.entities.append(self.redCars)
         self.entities.append(self.purpleCars)
@@ -660,15 +721,17 @@ class Play(GameState):
             #end if
         #end if
         
-        #snap frog center to tile grid
-        tileX: int = int(self.frog.rect.x / self.bg.rect.w)
-        tileY: int = int(self.frog.rect.y / self.bg.rect.w)
-        self.frog.rect.center = self.bg.tileGrid[tileY][tileX].center
+        if self.frog.mount == None:
+            #snap frog center to tile grid
+            tileX: int = int(self.frog.rect.x / self.bg.rect.w)
+            tileY: int = int(self.frog.rect.y / self.bg.rect.w)
+            self.frog.rect.center = self.bg.tileGrid[tileY][tileX].center
+        #end if
         
-        if key==pg.K_SPACE:
-            strimg = pg.image.tostring(self.img,'RGB',False)
-            img = Image.frombytes('RGB',self.img.get_size(),strimg)
-            img.save("gfx/screenshot.png")
+#         if key==pg.K_SPACE:
+#             strimg = pg.image.tostring(self.img,'RGB',False)
+#             img = Image.frombytes('RGB',self.img.get_size(),strimg)
+#             img.save("gfx/screenshot.png")
             
         return
     #end onKeyPressed
@@ -739,21 +802,29 @@ class Play(GameState):
                 
         #check for collisions
         if self.trucks.collide(self.frog):
+            self.blood.rect.center = self.frog.rect.center
+            self.blood.visible = True
             self.frog.spawn()
             self.header.numLives -= 1
         #end if
             
         if self.purpleCars.collide(self.frog):
+            self.blood.rect.center = self.frog.rect.center
+            self.blood.visible = True
             self.frog.spawn()
             self.header.numLives -= 1
         #end if
             
         if self.redCars.collide(self.frog):
+            self.blood.rect.center = self.frog.rect.center
+            self.blood.visible = True
             self.frog.spawn()
             self.header.numLives -= 1
         #end if
             
         if self.semis.collide(self.frog):
+            self.blood.rect.center = self.frog.rect.center
+            self.blood.visible = True
             self.frog.spawn()
             self.header.numLives -= 1
         #end if
@@ -783,6 +854,11 @@ class Play(GameState):
         #end if
             
         if self.frog.mount == None:
+            #snap frog center to tile grid
+            tileX: int = int(self.frog.rect.x / self.bg.rect.w)
+            tileY: int = int(self.frog.rect.y / self.bg.rect.w)
+            self.frog.rect.center = self.bg.tileGrid[tileY][tileX].center
+            
             for y in range(3,7):
                 for x in range(20):
                     if self.bg.tileGrid[y][x].colliderect(self.frog):
@@ -836,6 +912,16 @@ class Frogger(Game):
         
         return
     #end __init__
+    
+    def update(self, deltaTime: float) -> None:
+        super().update(deltaTime)
+        
+        if self.state.exitCode == 1:
+            self.switchState(self.playState)
+        #end if
+        
+        return
+    #end update
 #end Frogger
 
 def main() -> None:
