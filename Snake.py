@@ -1,19 +1,127 @@
 from SimpleGE import *
+from random import randint, random
+right = 0
+down = 1
+up = 2
+left = 3
+
+#Creating a Snake
+class Snake (RGBSurface):
+    def __init__(self):
+        super().__init__(pg.surface.Surface((20,20)))
+        self.name = "snake"
+        self.rect = pg.Rect((0,0), (20,20))
+        #Snake Image/Creation
+        self.img.fill((0,255,0))
+        self.bodyParts = [self.img]
+        self.bodyPosition = [self.rect, self.rect.move(-20,0)]
+        self.delay = 200
+        self.curTick = 0
+        self.prevTick = 0
+        self.direction = right
+        self.moveTimer = 100
+        self.moveTimePast = 0
+
+        return
+
+    def respawn (self):
+        self.speed = 20
+        self.direction = 0
+        self.rect.topleft = (0,0)
+        for i in self.bodyPosition:
+            i.x = -100
+
+        self.lives = self.lives -1
+
+    def update(self, deltaTime):
+        self.moveTimePast += deltaTime
+
+        for positionIndex in range(len(self.bodyPosition) -1,-1,-1):
+            self.bodyPosition[positionIndex].center = self.bodyPosition[positionIndex-1].center
+        
+        if self.moveTimePast >= self.moveTimer:
+            self.moveTimePast = 0
+            if self.direction == right:
+                self.rect.x += self.rect.w
+            if self.direction == left:
+                self.rect.x -= self.rect.w
+            if self.direction == up:
+                self.rect.y -= self.rect.w
+            if self.direction == down:
+                self.rect.y += self.rect.w
+
+
+        return  
+
+    def render(self, renderBuffer) -> None:
+        for position in self.bodyPosition:
+            print(position)
+            renderBuffer.blit(self.img, position)
+            
+        
+        return
+    #end render
+    
+#end Snake class
+
+class Fruit (RGBSurface):
+    def __init__(self):
+        super().__init__(pg.surface.Surface((20,20)))
+        self.name = "fruit"
+        self.rect = pg.Rect((400,400), (20,20))
+        #Fruit Image/Creation 
+        self.img.fill((238,75,43))
+        return
+
+    def FruitRespawn (self, screen_size):
+        random_x = randint(0, screen_size[0] - self.rect.w)
+        random_y = randint(0, screen_size[1] - self.rect.h)
+        self.rect.x = random_x
+        self.rect.y = random_y 
+        return
+#end Fruit class 
 
 class SnakeState(GameState):
     def __init__(self) -> None:
         super().__init__()
+        
+        #self.bodyParts: list[Snake] = list([Snake()])
+        self.Fruit = Fruit()
+        self.Snake = Snake()
 
         return
     #end __init__
 
-    def render(self) -> None:
-        self.renderBuffer.fill((22,4,75))
-        
+    def update(self):
+        if self.keysDown [pg.K_RIGHT]:
+            self.Snake.direction = right
+        if self.keysDown [pg.K_UP]:
+            self.Snake.direction = up
+        if self.keysDown [pg.K_DOWN]:
+            self.Snake.direction = down
+        if self.keysDown [pg.K_LEFT]:
+            self.Snake.direction = left
+        self.Snake.update(self.deltaTime)
+        self.Fruit.update(self.deltaTime)
+
+        #Setting Snake Growth
+        if self.Snake.rect.colliderect(self.Fruit.rect):
+            self.Fruit.FruitRespawn(self.renderSize)
+    
+            #self.Snake.bodyParts.append(pg.surface.Surface([self.Snake.rect.w, self.Snake.rect.h]))
+            #self.Snake.bodyParts[-1].fill((0,255,0))
+            self.Snake.bodyPosition.append(self.Snake.bodyParts[-1])
+            print(self.Snake.bodyParts)
         return
-    #end render
+
+    def render (self):
+        self.renderBuffer.fill((0,0,0))
+        self.Snake.render(self.renderBuffer)
+        self.Fruit.render(self.renderBuffer)
+
+        return 
 #end SnakeState
-	
+    	
 def main() -> None:
         myGame: Game = Game(
                 name = 'Snake'
@@ -22,6 +130,7 @@ def main() -> None:
         )
         
         myGame.run()
+        
 
         return
 #end main
