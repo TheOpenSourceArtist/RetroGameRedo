@@ -14,7 +14,7 @@ class Snake (RGBSurface):
         #Snake Image/Creation
         self.img.fill((0,255,0))
         self.bodyParts = [self.img]
-        self.bodyPosition = [self.rect, self.rect.move(-20,0)]
+        self.bodyPosition = [self.rect.move(0,0), self.rect.move(-20,0)]
         self.delay = 200
         self.curTick = 0
         self.prevTick = 0
@@ -42,13 +42,13 @@ class Snake (RGBSurface):
         if self.moveTimePast >= self.moveTimer:
             self.moveTimePast = 0
             if self.direction == right:
-                self.rect.x += self.rect.w
+                self.bodyPosition[0].x += self.rect.w
             if self.direction == left:
-                self.rect.x -= self.rect.w
+                self.bodyPosition[0].x -= self.rect.w
             if self.direction == up:
-                self.rect.y -= self.rect.w
+                self.bodyPosition[0].y -= self.rect.w
             if self.direction == down:
-                self.rect.y += self.rect.w
+                self.bodyPosition[0].y += self.rect.w
 
 
         return  

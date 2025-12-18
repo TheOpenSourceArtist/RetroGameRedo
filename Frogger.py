@@ -25,6 +25,7 @@ class Frog(Entity):
         #end for
         
         self.mount: pg.Rect = None
+        self.collisionRect: pg.Rect = self.rect.inflate(-7,-7)
         
         return
     #end __init__
@@ -35,12 +36,15 @@ class Frog(Entity):
         if isinstance(self.mount,Entity):
             self.rect.center += self.mount.velocity
         #end if
+            
+        self.collisionRect.center = self.rect.center
         
         return
     #end update
     
     def render(self, renderBuffer:pg.surface.Surface) -> None:
         renderBuffer.blit(self.states[self.state],self.rect)
+        pg.draw.rect(renderBuffer,(255,255,255),self.collisionRect, 1)
         
         return
     #end render
@@ -51,6 +55,10 @@ class Frog(Entity):
         
         return
     #end spawn
+    
+    def collide(self, other: pg.Rect) -> bool:
+        
+        return self.collisionRect.colliderect(other)
 #end Frog
     
 class GayFrogs(Entity):
@@ -76,9 +84,9 @@ class GayFrogs(Entity):
         return
     #end render
     
-    def collide(self, other: Entity) -> bool:
+    def collide(self, other: pg.Rect) -> bool:
         for i in range(self.numStates - 1):
-            if self.states[i] != 0 and self.rects[i].colliderect(other.rect):
+            if self.states[i] != 0 and self.rects[i].colliderect(other):
                 self.states[i] = 0
                 return True
             #end if
@@ -130,9 +138,9 @@ class TrafficLine(Entity):
         return
     #end onRoad
     
-    def collide(self, other: Entity) -> bool:
+    def collide(self, other: pg.Rect) -> bool:
         for i in range(self.numCars):
-            if self.onRoad[i] and self.rects[i].colliderect(other.rect):
+            if self.onRoad[i] and self.rects[i].colliderect(other):
                 return True
             #end if
         #end for
@@ -177,130 +185,271 @@ class Log(Entity):
         
         return
     #end spawn
+    
+    def collide(self, other: pg.Rect) -> bool:
+        
+        return self.rect.colliderect(other)
+    #end collide
 #end Log
     
 class Turtle(Entity):
-    def __init__(self) -> None:
-        super().__init__()
-        
-        return
-    #end __init__
-#end Turtle
-    
-class Gator(Entity):
-    def __init__(self, offset: int = 0) -> None:
-        super().__init__((0,0,60,20),pg.image.load('gfx/gator.bmp'))
+    def __init__(self, flipped: bool = False) -> None:
+        super().__init__((0,0,20,20),pg.image.load('gfx/turtle.bmp'))
         self.states: list[pg.surface.Surface] = [
-            self.img.subsurface((0,0,60,20))
-            ,self.img.subsurface((0,20,60,20))
-            ,pg.transform.rotate(self.img.subsurface((0,0,60,20)),180)
-            ,pg.transform.rotate(self.img.subsurface((0,20,60,20)),180)
+            self.img.subsurface((x,y,20,20))
+            for y in range(0,self.img.get_size()[1],20)
+            for x in range(0, self.img.get_size()[0],20)
         ]
+        self.states.extend([
+            pg.transform.rotate(self.img.subsurface((x,y,20,20)),180)
+            for y in range(0,self.img.get_size()[1],20)
+            for x in range(0, self.img.get_size()[0],20)
+        ])
         
         for state in self.states:
             state.set_colorkey(SGE_COLORKEY_DEFAULT)
         #end for
+            
+        self.stateNum: int = 0
+        self.numStates: int = int(len(self.states)/2)
+        self.stateTimer: int = 200
+        self.stateTimeDelta: int = 0
+        self.offset: int = 0
+        self.flipped: bool = flipped
+            
+        self.diving: bool = False
         
-        self.stateDelay: int = 500
-        self.stateDT: int = 0
-        self.stateIndex: int = 0
-        self.numStates: int = 2
-        self.startState: int = offset
+        return
+    #end __init__
+    
+    def update(self, deltaTime: float) -> None:
+        super().update(deltaTime)
+        
+        if self.flipped:
+            self.offset = self.numStates
+        else:
+            self.offset = 0
+        #end if
+            
+        if randint(1,100) < 10:
+            self.diving = True
+        #end if
+        
+        self.stateTimeDelta += deltaTime
+        
+        if self.stateTimeDelta >= self.stateTimer:
+            if self.diving:
+                self.stateTimeDelta = 0
+                self.stateNum = ((self.stateNum + 1) % self.numStates) + self.offset
+            #end if
+        #end if
+        
+        return
+    #end update
+    
+    def render(self, renderBuffer: pg.surface.Surface) -> None:
+        renderBuffer.blit(self.states[self.stateNum], self.rect)
+        
+        return
+    #end render
+    
+    def collide(self, other: pg.Rect) -> bool:
+        
+        return self.rect.colliderect(other)
+    #end collide
+#end Turtle
+    
+class Gator(Entity):
+    def __init__(self, flipped = False) -> None:
+        super().__init__((0,0,60,20),pg.image.load('gfx/gator.bmp'))
+        self.states: list[pg.surface.Surface] = [
+            self.img.subsurface((x,y,60,20))
+            for y in range(0,self.img.get_size()[1],20)
+            for x in range(0, self.img.get_size()[0],60)
+        ]
+        self.states.extend([
+            pg.transform.rotate(self.img.subsurface((x,y,60,20)),180)
+            for y in range(0,self.img.get_size()[1],20)
+            for x in range(0, self.img.get_size()[0],60)
+        ])
+        
+        for state in self.states:
+            state.set_colorkey(SGE_COLORKEY_DEFAULT)
+        #end for
+            
+        self.stateNum: int = 0
+        self.numStates: int = int(len(self.states)/2)
+        self.stateTimer: int = 200
+        self.stateTimeDelta: int = 0
+        self.offset: int = 0
+        self.flipped: bool = flipped
+        
+        self.head: Entity = Entity((0,0,6,10))
+        
+        return
+    #end __init__
+    
+    def update(self, deltaTime: float) -> None:
+        super().update(deltaTime)
+        
+        if self.flipped:
+            self.offset = self.numStates
+            self.head.rect.midright = self.rect.midright
+        else:
+            self.offset = 0
+            self.head.rect.midleft = self.rect.midleft
+        #end if
+        
+        self.stateTimeDelta += deltaTime
+        
+        if self.stateTimeDelta >= self.stateTimer:
+            self.stateTimeDelta = 0
+            self.stateNum = ((self.stateNum + 1) % self.numStates) + self.offset
+        #end if
+        
+        return
+    #end update
+    
+    def render(self, renderBuffer: pg.surface.Surface) -> None:
+        renderBuffer.blit(self.states[self.stateNum], self.rect)
+        pg.draw.rect(renderBuffer,(255,255,255),self.head.rect,1)
+        
+        return
+    #end render
+    
+    def collide(self, other: pg.Rect) -> bool:
+        
+        return self.rect.colliderect(other)
+    #end collide
+#end Gator
+    
+class RiverEntity(Entity):
+    def __init__(self, flipped: bool = False) -> None:
+        super().__init__()
+        self.states: list[Entity] = [
+            Log(4)
+            ,Log(3)
+            ,Log(2)
+            ,Gator(flipped)
+            ,Turtle(flipped)
+        ]
+        self.numStates: int = len(self.states)
+        self.stateNum: int = randint(0,self.numStates - 1)
         
         return
     #end __init__
     
     def render(self, renderBuffer: pg.surface.Surface) -> None:
-        renderBuffer.blit(self.states[self.stateIndex],self.rect)
+        if self.states[self.stateNum].visible:
+            self.states[self.stateNum].render(renderBuffer)
+        #end if
         
         return
     #end render
     
     def update(self, deltaTime: float) -> None:
-        self.stateDT += deltaTime
-        
-        if self.stateDT >= self.stateDelay:
-            self.stateIndex = ((self.stateIndex + 1) % self.numStates) + self.startState
-            self.stateDT = 0
-        #end if
+        self.states[self.stateNum].rect.center = self.rect.center
+        self.states[self.stateNum].visible = self.visible
+        self.states[self.stateNum].update(deltaTime)
         
         return
-    #end update
-#end Gator
+    #end render
+    
+    def changeState(self) -> None:
+        self.stateNum: int = randint(0,self.numStates - 1)
+        
+        return
+    #end changeState
+#end RiverEntity
     
 class RiverLine(Entity):
     def __init__(self, rect:pg.Rect, speed: float = 1) -> None:
         super().__init__(rect,vel=(speed, 0))
-        self.entities: list[Entity] = [
-            Gator()
-            ,Log(4)
-            ,Log(3)
-            ,Log(2)
+        self.numRiverRects: int = 6
+        self.riverRects: list[pg.Rect] = [
+            self.rect.move(0,0)
+            for i in range(self.numRiverRects)
         ]
-        self.numEntities: int = len(self.entities)
-        self.numThingsInWater: int = 6
-        self.spacing: int = self.rect.w
+        self.riverEntities: list[RiverEntity] = list()
         
-        if speed >= 0:
-            self.spacing *= -1
-            self.entities[0].startState = 2
-        #endif
-        
-        self.rects: list[pg.Rect] = [self.rect.move(self.spacing * i,0) for i in range(self.numThingsInWater)]
-        self.thingsInWater: list[int] = [choice(list(range(self.numEntities))) for i in range(self.numThingsInWater)]
-        self.thingsShown: list[bool] = [choice([True,False]) for i in range(self.numThingsInWater)]
+        if speed < 0:
+            for i in range(1,self.numRiverRects):
+                self.riverRects[i].midleft = self.riverRects[i-1].midright
+                self.riverEntities.append(RiverEntity(False))
+                self.riverEntities[-1].visible = choice((True,False))
+            #end for
+                
+            self.riverEntities.append(RiverEntity(False))
+            self.riverEntities[-1].visible = choice((True,False))
+        else:
+            for i in range(1,self.numRiverRects):
+                self.riverRects[i].midright = self.riverRects[i-1].midleft
+                self.riverEntities.append(RiverEntity(True))
+                self.riverEntities[-1].visible = choice((True,False))
+            #end for
+                
+            self.riverEntities.append(RiverEntity(True))
+            self.riverEntities[-1].visible = choice((True,False))
+        #end if
         
         return
     #end __init__
     
-    def collide(self, other: Entity) -> None:
-        for i in range(self.numThingsInWater):
-            self.entities[self.thingsInWater[i]].rect.center = self.rects[i].center
-            if self.entities[self.thingsInWater[i]].rect.colliderect(other.rect):
-                if self.thingsShown[i]:
-                    return True
-                #end if
+    def collide(self, other: pg.Rect) -> None:
+        for i in range(self.numRiverRects):
+            stateNum = self.riverEntities[i].stateNum
+            entity = self.riverEntities[i].states[stateNum]
+            
+            if entity.visible and entity.collide(other):
+                return True
             #end if
         #end for
         
         return False
-    #end mount
-    
-    def spawn(self, i: int) -> None:
-        self.thingsShown[i] = choice([True,False])
-        self.thingsInWater[i] = choice(list(range(self.numEntities)))
-        
-        if self.velocity.x >= 0:
-            self.rects[i].right = 0
-        else:
-            self.rects[i].left = 399
-        #end if
-        
-        return
-    #end spawn
+    #end collide
     
     def render(self, renderBuffer: pg.surface.Surface) -> None:
-        for i in range(self.numThingsInWater):            
-            if self.thingsShown[i]:
-                self.entities[self.thingsInWater[i]].rect.center = self.rects[i].center
-                self.entities[self.thingsInWater[i]].render(renderBuffer)
-            #end if
+        for i in range(self.numRiverRects):
+            stateNum = self.riverEntities[i].stateNum
+            entity = self.riverEntities[i].states[stateNum]
+            pg.draw.rect(renderBuffer,(255,255,255),entity.rect,1)
+            self.riverEntities[i].render(renderBuffer)
         #end for
         
         return
     #end render
     
     def update(self, deltaTime:float) -> None:
-        for i in range(self.numThingsInWater):
-            self.rects[i].center += self.velocity
-        #end for
-            
-        for entity in self.entities:
-            entity.update(deltaTime)
+        for i in range(self.numRiverRects):
+            self.riverRects[i].center += self.velocity
+            self.riverEntities[i].rect.center = self.riverRects[i].center
+            self.riverEntities[i].update(deltaTime)
         #end for
         
         return
     #end update
+    
+    def handleBounds(self, bounds: pg.Rect) -> None:
+        if self.velocity.x < 0:
+            for i in range(self.numRiverRects):
+                if self.riverRects[i].right < 0:
+                    self.riverRects[i].left = bounds.w - 1
+                    self.riverEntities[i].changeState()
+                    self.riverEntities[i].visible = choice((True,False))
+                #end if
+            #end for
+        else:
+            for i in range(self.numRiverRects):
+                if self.riverRects[i].left >= bounds.w:
+                    self.riverRects[i].right = 0
+                    self.riverEntities[i].changeState()
+                    self.riverEntities[i].visible = choice((True,False))
+                #end if
+            #end for
+        #end if
+            
+        return
+    #end handleBounds
 #end RiverLine
     
 class BloodSport(Entity):
@@ -771,65 +920,43 @@ class Play(GameState):
                 self.trucks.spawn(i)
             #end if
         #end for
-        
-        #river row 1
-        for i in range(self.riverRow1.numThingsInWater):
-            if self.riverRow1.rects[i].left >= self.rect.w:
-                self.riverRow1.spawn(i)
-            #end if
-        #end for
                 
-        #river row 2
-        for i in range(self.riverRow2.numThingsInWater):
-            if self.riverRow2.rects[i].right < 0:
-                self.riverRow2.spawn(i)
-            #end if
-        #end for
-                
-        #river row 3
-        for i in range(self.riverRow3.numThingsInWater):
-            if self.riverRow3.rects[i].left >= self.rect.w:
-                self.riverRow3.spawn(i)
-            #end if
-        #end for
-                
-        #river row 4
-        for i in range(self.riverRow4.numThingsInWater):
-            if self.riverRow4.rects[i].right < 0:
-                self.riverRow4.spawn(i)
-            #end if
-        #end for
+        #river Row 1
+        self.riverRow1.handleBounds(self.rect)
+        self.riverRow2.handleBounds(self.rect)
+        self.riverRow3.handleBounds(self.rect)
+        self.riverRow4.handleBounds(self.rect)
                 
         #check for collisions
-        if self.trucks.collide(self.frog):
+        if self.trucks.collide(self.frog.collisionRect):
             self.blood.rect.center = self.frog.rect.center
             self.blood.visible = True
             self.frog.spawn()
             self.header.numLives -= 1
         #end if
             
-        if self.purpleCars.collide(self.frog):
+        if self.purpleCars.collide(self.frog.collisionRect):
             self.blood.rect.center = self.frog.rect.center
             self.blood.visible = True
             self.frog.spawn()
             self.header.numLives -= 1
         #end if
             
-        if self.redCars.collide(self.frog):
+        if self.redCars.collide(self.frog.collisionRect):
             self.blood.rect.center = self.frog.rect.center
             self.blood.visible = True
             self.frog.spawn()
             self.header.numLives -= 1
         #end if
             
-        if self.semis.collide(self.frog):
+        if self.semis.collide(self.frog.collisionRect):
             self.blood.rect.center = self.frog.rect.center
             self.blood.visible = True
             self.frog.spawn()
             self.header.numLives -= 1
         #end if
             
-        if self.gayFrogs.collide(self.frog):
+        if self.gayFrogs.collide(self.frog.collisionRect):
             self.frog.spawn()
             self.header.numScore += self.header.numSeconds
             self.header.numSeconds = 100
@@ -837,19 +964,19 @@ class Play(GameState):
             
         self.frog.mount = None
         
-        if self.riverRow4.collide(self.frog):
+        if self.riverRow4.collide(self.frog.collisionRect):
             self.frog.mount = self.riverRow4
         #end if
             
-        if self.riverRow3.collide(self.frog):
+        if self.riverRow3.collide(self.frog.collisionRect):
             self.frog.mount = self.riverRow3
         #end if
             
-        if self.riverRow2.collide(self.frog):
+        if self.riverRow2.collide(self.frog.collisionRect):
             self.frog.mount = self.riverRow2
         #end if
             
-        if self.riverRow1.collide(self.frog):
+        if self.riverRow1.collide(self.frog.collisionRect):
             self.frog.mount = self.riverRow1
         #end if
             
