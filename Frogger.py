@@ -44,7 +44,7 @@ class Frog(Entity):
     
     def render(self, renderBuffer:pg.surface.Surface) -> None:
         renderBuffer.blit(self.states[self.state],self.rect)
-        pg.draw.rect(renderBuffer,(255,255,255),self.collisionRect, 1)
+#         pg.draw.rect(renderBuffer,(255,255,255),self.collisionRect, 1)
         
         return
     #end render
@@ -212,12 +212,14 @@ class Turtle(Entity):
             
         self.stateNum: int = 0
         self.numStates: int = int(len(self.states)/2)
-        self.stateTimer: int = 200
+        self.stateTimer: int = 300
         self.stateTimeDelta: int = 0
         self.offset: int = 0
         self.flipped: bool = flipped
             
         self.diving: bool = False
+        self.rising: bool = False
+        self.spawn()
         
         return
     #end __init__
@@ -230,10 +232,6 @@ class Turtle(Entity):
         else:
             self.offset = 0
         #end if
-            
-        if randint(1,100) < 10:
-            self.diving = True
-        #end if
         
         self.stateTimeDelta += deltaTime
         
@@ -241,6 +239,17 @@ class Turtle(Entity):
             if self.diving:
                 self.stateTimeDelta = 0
                 self.stateNum = ((self.stateNum + 1) % self.numStates) + self.offset
+                
+                if self.stateNum == 4 or self.stateNum == 9:
+                    self.diving = False
+                #end if
+            elif self.rising:
+                self.stateTimeDelta = 0
+                self.stateNum = ((self.stateNum - 1) % self.numStates) + self.offset
+                
+                if self.stateNum == 0 or self.stateNum == 5:
+                    self.rising = False
+                #end if
             #end if
         #end if
         
@@ -257,6 +266,19 @@ class Turtle(Entity):
         
         return self.rect.colliderect(other)
     #end collide
+    
+    def spawn(self) -> None:
+        self.diving = False
+        self.rising = False
+        
+        if self.flipped:
+            self.stateNum = 5
+        else:
+            self.stateNum = 0
+        #end if
+        
+        return
+    #end spawn
 #end Turtle
     
 class Gator(Entity):
@@ -312,7 +334,7 @@ class Gator(Entity):
     
     def render(self, renderBuffer: pg.surface.Surface) -> None:
         renderBuffer.blit(self.states[self.stateNum], self.rect)
-        pg.draw.rect(renderBuffer,(255,255,255),self.head.rect,1)
+#         pg.draw.rect(renderBuffer,(255,255,255),self.head.rect,1)
         
         return
     #end render
@@ -412,7 +434,7 @@ class RiverLine(Entity):
         for i in range(self.numRiverRects):
             stateNum = self.riverEntities[i].stateNum
             entity = self.riverEntities[i].states[stateNum]
-            pg.draw.rect(renderBuffer,(255,255,255),entity.rect,1)
+#             pg.draw.rect(renderBuffer,(255,255,255),entity.rect,1)
             self.riverEntities[i].render(renderBuffer)
         #end for
         
@@ -432,18 +454,52 @@ class RiverLine(Entity):
     def handleBounds(self, bounds: pg.Rect) -> None:
         if self.velocity.x < 0:
             for i in range(self.numRiverRects):
+                stateNum = self.riverEntities[i].stateNum
+                entity = self.riverEntities[i].states[stateNum]
+                
                 if self.riverRects[i].right < 0:
                     self.riverRects[i].left = bounds.w - 1
                     self.riverEntities[i].changeState()
                     self.riverEntities[i].visible = choice((True,False))
+                    
+                    if isinstance(entity,Turtle):
+                        entity.spawn()
+                    #end if
+                elif self.riverRects[i].right < bounds.w:
+                    if isinstance(entity,Turtle):
+                        if randint(1,100) < 2:
+                            if entity.rising == False and entity.stateNum in (4,9):
+                                entity.rising = True
+                            elif entity.diving == False and entity.stateNum in (0,5):
+                                entity.diving = True
+                            #end if
+                        #end if
+                    #end if
                 #end if
             #end for
         else:
             for i in range(self.numRiverRects):
+                stateNum = self.riverEntities[i].stateNum
+                entity = self.riverEntities[i].states[stateNum]
+                
                 if self.riverRects[i].left >= bounds.w:
                     self.riverRects[i].right = 0
                     self.riverEntities[i].changeState()
                     self.riverEntities[i].visible = choice((True,False))
+                    
+                    if isinstance(entity,Turtle):
+                        entity.spawn()
+                    #end if
+                elif self.riverRects[i].left > 0:
+                    if isinstance(entity,Turtle):
+                        if randint(1,100) < 2:
+                            if entity.rising == False and entity.stateNum in (4,9):
+                                entity.rising = True
+                            elif entity.diving == False and entity.stateNum in (0,5):
+                                entity.diving = True
+                            #end if
+                        #end if
+                    #end if
                 #end if
             #end for
         #end if
@@ -877,10 +933,10 @@ class Play(GameState):
             self.frog.rect.center = self.bg.tileGrid[tileY][tileX].center
         #end if
         
-#         if key==pg.K_SPACE:
-#             strimg = pg.image.tostring(self.img,'RGB',False)
-#             img = Image.frombytes('RGB',self.img.get_size(),strimg)
-#             img.save("gfx/screenshot.png")
+        if key==pg.K_SPACE:
+            strimg = pg.image.tostring(self.img,'RGB',False)
+            img = Image.frombytes('RGB',self.img.get_size(),strimg)
+            img.save("gfx/screenshot.png")
             
         return
     #end onKeyPressed
@@ -961,6 +1017,84 @@ class Play(GameState):
             self.header.numScore += self.header.numSeconds
             self.header.numSeconds = 100
         #end if
+            
+        #gator heads and turtles
+        for i in range(self.riverRow1.numRiverRects):
+            stateNum = self.riverRow1.riverEntities[i].stateNum
+            entity = self.riverRow1.riverEntities[i].states[stateNum]
+            
+            if isinstance(entity, Gator):
+                if self.frog.collide(entity.head.rect):
+                    self.frog.spawn()
+                    self.header.numLives -= 1
+                #end if
+            elif isinstance(entity, Turtle):
+                if self.frog.collide(entity.rect):
+                    if entity.stateNum in (4,9):
+                        self.frog.spawn()
+                        self.header.numLives -= 1
+                    #end if
+                #end if
+            #end if
+        #end for
+                    
+        for i in range(self.riverRow2.numRiverRects):
+            stateNum = self.riverRow2.riverEntities[i].stateNum
+            entity = self.riverRow2.riverEntities[i].states[stateNum]
+            
+            if isinstance(entity, Gator):
+                if self.frog.collide(entity.head.rect):
+                    self.frog.spawn()
+                    self.header.numLives -= 1
+                #end if
+            elif isinstance(entity, Turtle):
+                if self.frog.collide(entity.rect):
+                    if entity.stateNum in (4,9):
+                        self.frog.spawn()
+                        self.header.numLives -= 1
+                    #end if
+                #end if
+            #end if
+            #end if
+        #end for
+                    
+        for i in range(self.riverRow3.numRiverRects):
+            stateNum = self.riverRow3.riverEntities[i].stateNum
+            entity = self.riverRow3.riverEntities[i].states[stateNum]
+            
+            if isinstance(entity, Gator):
+                if self.frog.collide(entity.head.rect):
+                    self.frog.spawn()
+                    self.header.numLives -= 1
+                #end if
+            elif isinstance(entity, Turtle):
+                if self.frog.collide(entity.rect):
+                    if entity.stateNum in (4,9):
+                        self.frog.spawn()
+                        self.header.numLives -= 1
+                    #end if
+                #end if
+            #end if
+        #end for
+                    
+        for i in range(self.riverRow4.numRiverRects):
+            stateNum = self.riverRow4.riverEntities[i].stateNum
+            entity = self.riverRow4.riverEntities[i].states[stateNum]
+            
+            if isinstance(entity, Gator):
+                if self.frog.collide(entity.head.rect):
+                    self.frog.spawn()
+                    self.header.numLives -= 1
+                #end if
+            elif isinstance(entity, Turtle):
+                if self.frog.collide(entity.rect):
+                    if entity.stateNum in (4,9):
+                        self.frog.spawn()
+                        self.header.numLives -= 1
+                    #end if
+                #end if
+            #end if
+        #end for
             
         self.frog.mount = None
         
