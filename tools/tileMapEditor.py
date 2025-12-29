@@ -1,5 +1,6 @@
 from SimplerGE import *
 from sys import argv
+import traceback
 
 DISPLAY_SIZE: list[int] = [1000,600]
 RENDER_SIZE: list[int] = [1000,600]
@@ -12,7 +13,7 @@ FONT_SIZE: int = int(RENDER_SIZE[1] * 0.07)
 TILEWIDTH: int = 8
 TILEHEIGHT: int = 8
 TILEMAPWIDTH: int = 20
-TILEMAPHEIGHT: int = 15
+TILEMAPHEIGHT: int = 20
 
 BLACK: list[int] = [0,0,0]
 DARK: list[int] = [77,77,77]
@@ -311,46 +312,155 @@ class TileMap(Entity):
         self.tileHeight: int = tileHeight
         self.tileMapWidth: int = tileMapWidth
         self.tileMapHeight: int = tileMapHeight
+        self.map: list[int] = [[-1 for x in range(self.tileMapWidth)] for y in range(self.tileMapHeight)]
+        self.numTiles: int = 0
         self.scale: float = 3.0
         
-        super().__init__((0,0,0,0))
+        super().__init__((0,0,tileWidth * tileMapWidth * self.scale,tileHeight * tileMapHeight * self.scale), pg.image.load(argv[-1]))
 #         self.img.fill(BLACK)
         self.tileRects: list[pg.Rect] = []
+        self.tiles: list[pg.surface.Surface] = []
+        self.selectedTile: int = 0
         self.getTiles()
         
         return
     #end __init__
     
-    def render(self, renderBuffer: pg.surface.Surface) -> None:
-#         super().render(renderBuffer)
-        
-        for rect in self.tileRects:
-            pg.draw.rect(renderBuffer,WHITE,rect,1)
+    def render(self, renderBuffer: pg.surface.Surface) -> None:            
+        for y in range(self.tileMapHeight):
+            for x in range(self.tileMapWidth):
+                pg.draw.rect(renderBuffer,WHITE,self.tileRects[y][x],1)
+                
+                if self.map[y][x] > -1:
+                    renderBuffer.blit(pg.transform.scale(self.tiles[self.map[y][x]],self.tileRects[y][x].size),self.tileRects[y][x])
+                #end if
+            #end for
         #end for
-        
+                
         return
     #end render
     
     def getTiles(self) -> None:
-        self.tileRects: list[pg.Rect] = []
+        self.tileRects = []
+        self.tiles = []
+        self.selectedTile = 0
+        
+#         img: pg.surface.Surface = self.tileSetImg
+        width: int = self.tileWidth
+        height: int = self.tileHeight
+        scaledW: int = (width) * self.scale
+        scaledH: int = (height) * self.scale
+        y: int = 0
+        x: int = 0
+        
+        for r in range(0,self.img.get_size()[1],height):
+            x = 0
+            
+            for c in range(0,self.img.get_size()[0],width):
+                if c + width <= self.img.get_size()[0] and r + height <= self.img.get_size()[1]:
+                    self.tiles.append(self.img.subsurface((c,r,width,height)))
+#                     self.tileRects.append(pg.Rect(
+#                         round((x * scaledW) + self.rect.x)
+#                         ,round((y * scaledH) + self.rect.y)
+#                         ,round(scaledW)
+#                         ,round(scaledH)
+#                     ))
+                #end if
+                
+                x += 1
+            #end for
+            
+            y += 1
+        #end for
+        
+        self.numTiles = len(self.tiles)
         
         for y in range(self.tileMapHeight):
+            row: list[pg.Rect] = []
+            
             for x in range(self.tileMapWidth):
-                self.tileRects.append(pg.Rect(
-                    (x * self.tileWidth * self.scale) + self.rect.x
-                    ,(y * self.tileHeight * self.scale) + self.rect.y
-                    ,(self.tileWidth * self.scale)
-                    ,(self.tileHeight * self.scale)
+                row.append(pg.Rect(
+                    (x * self.scale * TILEWIDTH) + self.rect.x
+                    ,(y * self.scale * TILEHEIGHT) + self.rect.y
+                    ,(self.scale * TILEWIDTH)
+                    ,(self.scale * TILEHEIGHT)
                 ))
-        
-#         self.tileRects: list[pg.Rect] = [
-#             pg.Rect(x + self.rect.x,y+self.rect.y,round(self.tileWidth*self.scale),round(self.tileHeight*self.scale))
-#             for y in range(0,round(self.tileHeight * self.tileMapHeight * self.scale),round(self.tileHeight * self.scale))
-#             for x in range(0,round(self.tileWidth * self.tileMapWidth * self.scale),round(self.tileWidth * self.scale))
-#         ]
+            #end for
+                
+            if y >= len(self.map):
+                self.map.append([-1 for x in range(self.tileMapWidth)])
+                self.rect.h += self.scale * TILEHEIGHT
+                
+            if len(row) > len(self.map[y]):
+                self.map[y].append(-1)
+                self.rect.w += self.scale * TILEWIDTH
+            elif len(row) < len(self.map[y]):
+                self.map[y].pop(-1)
+                self.rect.w -= self.scale * TILEWIDTH
+            #end if
+            
+            self.tileRects.append(row)
+        #end for
+            
+        if len(self.tileRects) < len(self.map):
+            self.map.pop(-1)
+            self.rect.h -= self.scale * TILEHEIGHT
+        #end if
+            
+        for y in range(self.tileMapHeight):
+            for x in range(self.tileMapWidth):
+                if self.map[y][x] >= self.numTiles:
+                    self.map[y][x] = -1
+                #end if
+            #end for
+        #end for
         
         return
     #end getTiles
+    
+    def setTile(self, pos: list[int]) -> None:
+        for y in range(self.tileMapHeight):
+            for x in range(self.tileMapWidth):
+                if self.tileRects[y][x].collidepoint(pos):
+                    self.map[y][x] = self.selectedTile
+                    
+                    return
+                #end if
+            #end for
+        #end for
+        
+        return
+    #end setTile
+    
+    def clearTile(self, pos: list[int]) -> None:
+        for y in range(self.tileMapHeight):
+            for x in range(self.tileMapWidth):
+                if self.tileRects[y][x].collidepoint(pos):
+                    self.map[y][x] = -1
+                    
+                    return
+                #end if
+            #end for
+        #end for
+        
+        return
+    #end setTile
+    
+    def export(self) -> None:
+        output = """
+imgPath: str = '%s'
+imgSize: list[int] = %s
+tileWidth: int = %d
+tileHeight: int = %d
+tileMapWidth: int = %d
+tileMapHeight: int = %d
+numTiles: int = %d
+map: list[list[int]] = %s
+""" % (argv[-1],repr(self.img.get_size()),self.tileWidth,self.tileHeight,self.tileMapWidth,self.tileMapHeight,self.numTiles,repr(self.map).replace('], [',']\n, ['))
+        print(output)
+        
+        return
+    #end export
 #end TileMap
     
 class WorkArea(Entity):
@@ -395,6 +505,12 @@ class MainState(GameState):
     def onMousePosUpdate(self, pos: list[int]) -> None:
         self.mousePos = pos
         
+        if pg.mouse.get_pressed()[0]:
+            self.workArea.tileMap.setTile(pos)
+        elif pg.mouse.get_pressed()[2]:
+            self.workArea.tileMap.clearTile(pos)
+        #end if
+        
         return
     #end onMousePosUpdate
     
@@ -405,6 +521,8 @@ class MainState(GameState):
             
             if  self.panel.tileSelector.tileWidth > 0:
                 self.panel.tileSelector.getTiles()
+                self.workArea.tileMap.tileWidth = self.panel.tileSelector.tileWidth
+                self.workArea.tileMap.getTiles()
             #end if
         elif self.panel.tileSelector.incTileWidth.lblIncrement.rect.collidepoint(self.mousePos):
             self.panel.tileSelector.incTileWidth.increment()
@@ -412,6 +530,8 @@ class MainState(GameState):
             
             if  self.panel.tileSelector.tileWidth > 0:
                 self.panel.tileSelector.getTiles()
+                self.workArea.tileMap.tileWidth = self.panel.tileSelector.tileWidth
+                self.workArea.tileMap.getTiles()
             #end if
         elif self.panel.tileSelector.incTileHeight.lblIncrement.rect.collidepoint(self.mousePos):
             self.panel.tileSelector.incTileHeight.increment()
@@ -419,6 +539,8 @@ class MainState(GameState):
             
             if  self.panel.tileSelector.tileHeight > 0:
                 self.panel.tileSelector.getTiles()
+                self.workArea.tileMap.tileHeight = self.panel.tileSelector.tileHeight
+                self.workArea.tileMap.getTiles()
             #end if
         elif self.panel.tileSelector.incTileHeight.lblDecrement.rect.collidepoint(self.mousePos):
             self.panel.tileSelector.incTileHeight.decrement()
@@ -426,9 +548,12 @@ class MainState(GameState):
 
             if  self.panel.tileSelector.tileHeight > 0:
                 self.panel.tileSelector.getTiles()
+                self.workArea.tileMap.tileHeight = self.panel.tileSelector.tileHeight
+                self.workArea.tileMap.getTiles()
             #end if
         elif self.panel.tileSelector.tileSetPreview.rect.collidepoint(self.mousePos):
             self.panel.tileSelector.getSelectedTile(self.mousePos)
+            self.workArea.tileMap.selectedTile = self.panel.tileSelector.selectedTile
         elif self.panel.tileMapInfo.incTileMapWidth.lblDecrement.rect.collidepoint(self.mousePos):
             self.panel.tileMapInfo.incTileMapWidth.decrement()
             self.workArea.tileMap.tileMapWidth = self.panel.tileMapInfo.incTileMapWidth.value
@@ -447,6 +572,9 @@ class MainState(GameState):
             self.workArea.tileMap.getTiles()
         elif self.panel.tileMapInfo.btnExport.rect.collidepoint(self.mousePos):
             print('Export Tile Map Information')
+            self.workArea.tileMap.export()
+        elif self.workArea.tileMap.rect.collidepoint(self.mousePos):
+            self.workArea.tileMap.setTile(self.mousePos)
         #end if
         
         return
@@ -464,7 +592,13 @@ class Editor(Game):
 
 def main() -> None:
     editor: Editor = Editor()
-    editor.run()
+    
+    try:
+        editor.run()
+    except Exception as e:
+        editor.active = False
+        print("An Exception Occured:")
+        traceback.print_exc()
     
     return
 #end main
