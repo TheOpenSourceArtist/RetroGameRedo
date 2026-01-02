@@ -14,14 +14,21 @@ class Snake (RGBSurface):
         #Snake Image/Creation
         self.img.fill((0,255,0))
         self.bodyParts = [self.img]
+<<<<<<< HEAD
         self.bodyPosition = [self.rect, pg.Rect(-20,0,20,20)]
+=======
+        self.bodyPosition = [self.rect.move(0,0), self.rect.move(-20,0)]
+>>>>>>> e4af51c29636d8d879ffd7fead8cd186213f5ed0
         self.delay = 200
         self.curTick = 0
         self.prevTick = 0
         self.direction = right
         self.moveTimer = 100
         self.moveTimePast = 0
+<<<<<<< HEAD
         self.lives = 3
+=======
+>>>>>>> e4af51c29636d8d879ffd7fead8cd186213f5ed0
 
         return
 
@@ -37,12 +44,20 @@ class Snake (RGBSurface):
     def update(self, deltaTime):
         self.moveTimePast += deltaTime
 
+<<<<<<< HEAD
         if self.moveTimePast >= self.moveTimer:
             self.moveTimePast = 0
             for positionIndex in range(len(self.bodyPosition) -1,0,-1):
                 self.bodyPosition[positionIndex].x = self.bodyPosition[positionIndex-1].x
                 self.bodyPosition[positionIndex].y = self.bodyPosition[positionIndex-1].y
 
+=======
+        for positionIndex in range(len(self.bodyPosition) -1,-1,-1):
+            self.bodyPosition[positionIndex].center = self.bodyPosition[positionIndex-1].center
+        
+        if self.moveTimePast >= self.moveTimer:
+            self.moveTimePast = 0
+>>>>>>> e4af51c29636d8d879ffd7fead8cd186213f5ed0
             if self.direction == right:
                 self.bodyPosition[0].x += self.rect.w
             if self.direction == left:
@@ -52,15 +67,23 @@ class Snake (RGBSurface):
             if self.direction == down:
                 self.bodyPosition[0].y += self.rect.w
 
+<<<<<<< HEAD
             
 
+=======
+>>>>>>> e4af51c29636d8d879ffd7fead8cd186213f5ed0
 
         return  
 
     def render(self, renderBuffer) -> None:
         for position in self.bodyPosition:
+<<<<<<< HEAD
             renderBuffer.blit(self.img, position)
 
+=======
+            print(position)
+            renderBuffer.blit(self.img, position)
+>>>>>>> e4af51c29636d8d879ffd7fead8cd186213f5ed0
             
         
         return
@@ -92,10 +115,13 @@ class SnakeState(GameState):
         #self.bodyParts: list[Snake] = list([Snake()])
         self.Fruit = Fruit()
         self.Snake = Snake()
+<<<<<<< HEAD
 
         livesFont = pg.font.Font(None, 40)
         gameOverFont = pg.font.Font(None, 120)
         gamePaused = False
+=======
+>>>>>>> e4af51c29636d8d879ffd7fead8cd186213f5ed0
 
         return
     #end __init__
@@ -118,11 +144,16 @@ class SnakeState(GameState):
     
             #self.Snake.bodyParts.append(pg.surface.Surface([self.Snake.rect.w, self.Snake.rect.h]))
             #self.Snake.bodyParts[-1].fill((0,255,0))
+<<<<<<< HEAD
             self.Snake.bodyPosition.append(self.Snake.bodyPosition[-1].move(0,0))
         
             print(self.Snake.bodyParts)
 
             
+=======
+            self.Snake.bodyPosition.append(self.Snake.bodyParts[-1])
+            print(self.Snake.bodyParts)
+>>>>>>> e4af51c29636d8d879ffd7fead8cd186213f5ed0
         return
 
     def render (self):
