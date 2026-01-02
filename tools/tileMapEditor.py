@@ -1,11 +1,27 @@
 from SimplerGE import *
 from sys import argv
 
+<<<<<<< HEAD
 #global vars
 DISP_SIZE: list[int] = [900,600]
 PANEL_SIZE: list[int] = [int(DISP_SIZE[0] * 0.25),int(DISP_SIZE[1])]
 CANVAS_SIZE: list[int] = [int(DISP_SIZE[0] * 0.75),int(DISP_SIZE[1])]
 FONT_SIZE: int = 25
+=======
+DISPLAY_SIZE: list[int] = [1000,600]
+RENDER_SIZE: list[int] = [1000,600]
+PANEL_SIZE: list[int] = [int(RENDER_SIZE[0] * 0.35),int(RENDER_SIZE[1])]
+WORKAREA_SIZE: list[int] = [RENDER_SIZE[0] - PANEL_SIZE[0], RENDER_SIZE[1]]
+TILESETPREVIEW_SIZE: list[int] = [int(PANEL_SIZE[0] * 0.8),int(PANEL_SIZE[0] * 0.8)]
+
+FONT_SIZE: int = int(RENDER_SIZE[1] * 0.07)
+
+TILEWIDTH: int = 8
+TILEHEIGHT: int = 8
+TILEMAPWIDTH: int = 30
+TILEMAPHEIGHT: int = 20
+TILEMAPSCALE: float = 2.5
+>>>>>>> f0bff76 (a)
 
 #colors
 BLACK: list[int] = [0,0,0]
@@ -120,8 +136,55 @@ class TileSelector(Entity):
 class Panel(Entity):
     def __init__(self) -> None:
         super().__init__((0,0,PANEL_SIZE[0],PANEL_SIZE[1]))
+<<<<<<< HEAD
         self.img.fill(DARK)
         pg.draw.rect(self.img,BLACK,self.rect,1)
+=======
+        self.entities: list[Entity] = []
+        self.tileSelector: TileSelector = TileSelector(argv[-1])
+        self.tileMapInfo: TileMapInfo = TileMapInfo()
+        self.tileMapInfo.rect.midtop = self.tileSelector.incTileHeight.rect.midbottom
+        
+        self.entities.append(self.tileSelector)
+        self.entities.append(self.tileMapInfo)
+        
+        return
+    #end __int__
+    
+    def update(self, deltaTime: float) -> None:
+        for entity in self.entities:
+            entity.update(deltaTime)
+        #end for
+        
+        return
+    #end update
+    
+    def render(self, renderBuffer: pg.surface.Surface) -> None:
+        for entity in self.entities:
+            entity.render(renderBuffer)
+        #end
+        
+        return
+    #end render
+#end Panel
+    
+class TileMap(Entity):
+    def __init__(self, tileWidth: int, tileHeight: int, tileMapWidth: int, tileMapHeight: int) -> None:
+        self.tileWidth: int = tileWidth
+        self.tileHeight: int = tileHeight
+        self.tileMapWidth: int = tileMapWidth
+        self.tileMapHeight: int = tileMapHeight
+        self.map: list[int] = [[-1 for x in range(self.tileMapWidth)] for y in range(self.tileMapHeight)]
+        self.numTiles: int = 0
+        self.scale: float = TILEMAPSCALE
+        
+        super().__init__((0,0,tileWidth * tileMapWidth * self.scale,tileHeight * tileMapHeight * self.scale), pg.image.load(argv[-1]))
+#         self.img.fill(BLACK)
+        self.tileRects: list[pg.Rect] = []
+        self.tiles: list[pg.surface.Surface] = []
+        self.selectedTile: int = 0
+        self.getTiles()
+>>>>>>> f0bff76 (a)
         
         return
     #end __init__
@@ -162,10 +225,70 @@ class Editor(GameState):
             tileW: int = self.tileSelector.selectedOutline.rect.w
             tileH: int = self.tileSelector.selectedOutline.rect.h
             
+<<<<<<< HEAD
             self.tileSelector.selectedOutline.rect.topleft = [
                 xTile * tileW + self.tileSelector.tileSetPreview.rect.x
                 , yTile * tileH + self.tileSelector.tileSetPreview.rect.y
             ]
+=======
+            if  self.panel.tileSelector.tileWidth > 0:
+                self.panel.tileSelector.getTiles()
+                self.workArea.tileMap.tileWidth = self.panel.tileSelector.tileWidth
+                self.workArea.tileMap.getTiles()
+            #end if
+        elif self.panel.tileSelector.incTileWidth.lblIncrement.rect.collidepoint(self.mousePos):
+            self.panel.tileSelector.incTileWidth.increment()
+            self.panel.tileSelector.tileWidth = self.panel.tileSelector.incTileWidth.value
+            
+            if  self.panel.tileSelector.tileWidth > 0:
+                self.panel.tileSelector.getTiles()
+                self.workArea.tileMap.tileWidth = self.panel.tileSelector.tileWidth
+                self.workArea.tileMap.getTiles()
+            #end if
+        elif self.panel.tileSelector.incTileHeight.lblIncrement.rect.collidepoint(self.mousePos):
+            self.panel.tileSelector.incTileHeight.increment()
+            self.panel.tileSelector.tileHeight = self.panel.tileSelector.incTileHeight.value
+            
+            if  self.panel.tileSelector.tileHeight > 0:
+                self.panel.tileSelector.getTiles()
+                self.workArea.tileMap.tileHeight = self.panel.tileSelector.tileHeight
+                self.workArea.tileMap.getTiles()
+            #end if
+        elif self.panel.tileSelector.incTileHeight.lblDecrement.rect.collidepoint(self.mousePos):
+            self.panel.tileSelector.incTileHeight.decrement()
+            self.panel.tileSelector.tileHeight = self.panel.tileSelector.incTileHeight.value
+
+            if  self.panel.tileSelector.tileHeight > 0:
+                self.panel.tileSelector.getTiles()
+                self.workArea.tileMap.tileHeight = self.panel.tileSelector.tileHeight
+                self.workArea.tileMap.getTiles()
+            #end if
+        elif self.panel.tileSelector.tileSetPreview.rect.collidepoint(self.mousePos):
+            self.panel.tileSelector.getSelectedTile(self.mousePos)
+            self.workArea.tileMap.selectedTile = self.panel.tileSelector.selectedTile
+        elif self.panel.tileMapInfo.incTileMapWidth.lblDecrement.rect.collidepoint(self.mousePos):
+            self.panel.tileMapInfo.incTileMapWidth.decrement()
+            self.workArea.tileMap.tileMapWidth = self.panel.tileMapInfo.incTileMapWidth.value
+            self.workArea.tileMap.getTiles()
+        elif self.panel.tileMapInfo.incTileMapWidth.lblIncrement.rect.collidepoint(self.mousePos):
+            self.panel.tileMapInfo.incTileMapWidth.increment()
+            self.workArea.tileMap.tileMapWidth = self.panel.tileMapInfo.incTileMapWidth.value
+            self.workArea.tileMap.getTiles()
+        elif self.panel.tileMapInfo.incTileMapHeight.lblDecrement.rect.collidepoint(self.mousePos):
+            self.panel.tileMapInfo.incTileMapHeight.decrement()
+            self.workArea.tileMap.tileMapHeight = self.panel.tileMapInfo.incTileMapHeight.value
+            self.workArea.tileMap.getTiles()
+        elif self.panel.tileMapInfo.incTileMapHeight.lblIncrement.rect.collidepoint(self.mousePos):
+            self.panel.tileMapInfo.incTileMapHeight.increment()
+            self.workArea.tileMap.tileMapHeight = self.panel.tileMapInfo.incTileMapHeight.value
+            self.workArea.tileMap.getTiles()
+        elif self.panel.tileMapInfo.btnExport.rect.collidepoint(self.mousePos):
+            print('Export Tile Map Information')
+            self.workArea.tileMap.export()
+#         elif self.workArea.tileMap.rect.collidepoint(self.mousePos):
+#             self.workArea.tileMap.setTile(self.mousePos)
+        #end if
+>>>>>>> f0bff76 (a)
         
         return
     #end onMouseButtonReleased
