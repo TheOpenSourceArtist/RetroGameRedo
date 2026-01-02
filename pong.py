@@ -1,93 +1,115 @@
-from SimpleGE import *
+from SimplerGE import *
 
-class Paddle(RGBSurface):
+RENDER_SIZE: list[int] = [800,600]
+DISP_SIZE: list[int] = [800,600]
+
+WHITE: list[int] = [255,255,255]
+
+class Ball(Entity):
     def __init__(self) -> None:
-        super().__init__(pg.surface.Surface([15,75]),[10,0])
-        self.img.fill((255,255,255))
-        
+        super().__init__((0,0,20,20))
+        self.img.fill((255,0,255))
+        pg.draw.circle(
+            self.img
+            ,(255,255,255)
+            ,self.rect.center
+            ,int(self.rect.w / 2)
+            ,0
+        )
+        self.speed: float = 4.0
+        self.velocity = pg.math.Vector2(
+            (self.speed,self.speed)
+        )
+
         return
     #end __init__
-    
-    def update(self, dt: int) -> None:
-        
+
+    def update(self, deltaTime: float) -> None:
+        super().update(deltaTime)
+
         return
     #end update
 #end Ball
 
-class Ball(RGBSurface):
+class Paddle(Entity):
     def __init__(self) -> None:
-        super().__init__(pg.surface.Surface([10,10]))
-        pg.draw.circle(self.img,(255,255,255),[5,5],5)
-        self.velocity: pg.math.Vector2 = pg.math.Vector2(5,5)
-        
+        super().__init__((0,0,20,200))
+        self.img.fill(WHITE)
+        self.speed: float = 7.0
+
         return
     #end __init__
-    
-    def update(self, dt: int) -> None:
-        self.rect.center += self.velocity
-        
-        return
-    #end update
-#end Ball
+#end Paddle
 
-class PongState(GameState):
+class PlayState(GameState):
     def __init__(self) -> None:
-        super().__init__()
+        super().__init__(RENDER_SIZE)
         self.ball: Ball = Ball()
-        self.playerPaddle: Paddle = Paddle()
-        self.compPaddle: Paddle = Paddle()
-        self.compPaddle.rect.right = self.renderSize[0] - 15
-        
+        self.paddle: Paddle = Paddle()
+        self.ball.rect.x += self.paddle.rect.w
+        self.otherPaddle: Paddle = Paddle()
+        self.otherPaddle.rect.right = self.rect.right
+
         self.entities.append(self.ball)
-        self.entities.append(self.playerPaddle)
-        self.entities.append(self.compPaddle)
-        
+        self.entities.append(self.paddle)
+        self.entities.append(self.otherPaddle)
+
         return
     #end __init__
-    
-    def update(self) -> None:
-        super().update()
-        
-        if self.ball.rect.right >= self.renderSize[0]:
-            self.ball.velocity.x *= -1
-        elif self.ball.rect.left < 0:
-            self.ball.velocity.x *= -1
-        #end if
-            
-        if self.ball.rect.top < 0:
-            self.ball.velocity.y *= -1
-        elif self.ball.rect.bottom >= self.renderSize[1]:
+
+    def update(self, deltaTime: float) -> None:
+        super().update(deltaTime)
+
+        if self.ball.rect.bottom >= self.rect.bottom:
             self.ball.velocity.y *= -1
         #end if
-            
-        if self.keysDown[pg.K_DOWN]:
-            self.playerPaddle.rect.bottom += 10
-            
-            if self.playerPaddle.rect.bottom >= self.renderSize[1]:
-                self.playerPaddle.rect.bottom = self.renderSize[1]
-            #end if
+
+        if self.ball.rect.top <= self.rect.top:
+            self.ball.velocity.y *= -1
         #end if
-        
-        if self.keysDown[pg.K_UP]:
-            self.playerPaddle.rect.bottom -= 10
-            
-            if self.playerPaddle.rect.top < 0:
-                self.playerPaddle.rect.top = 0
-            #end if
-        #end if
-                
-        self.compPaddle.rect.y = self.ball.rect.y
-                
-        if self.ball.rect.colliderect(self.playerPaddle.rect) or self.ball.rect.colliderect(self.compPaddle.rect):
+
+        if self.ball.rect.right >= self.rect.right:
             self.ball.velocity.x *= -1
-        
+        #end if
+
+        if self.ball.rect.left <= self.rect.left:
+            self.ball.velocity.x *= -1
+        #end if
+
         return
     #end update
-#end PongState
+
+    def onKeysDown(self, keys: list[bool]) -> None:
+        if keys[pg.K_DOWN]:
+            self.paddle.rect.y += self.paddle.speed
+
+            if self.paddle.rect.bottom > self.rect.bottom:
+                self.paddle.rect.bottom = self.rect.bottom
+            #end if
+        #end if
+
+        if keys[pg.K_UP]:
+            self.paddle.rect.y -= self.paddle.speed
+
+            if self.paddle.rect.top < self.rect.top:
+                self.paddle.rect.top = self.rect.top
+            #end if
+        #end if
+        
+        return
+    #end onKeysDown
+#end PlayState
 
 def main() -> None:
-    pong: Game = Game('Pong',[800,600],PongState())
-    pong.run()    
+    pong: Game = Game("Pong", DISP_SIZE)
+    pong.switchState(PlayState())
+
+    try:
+        pong.run()
+    except Exception as e:
+        print('Something went wrong:\n%s' % e)
+        pong.active = False
+    #end try
 
     return
 #end main
