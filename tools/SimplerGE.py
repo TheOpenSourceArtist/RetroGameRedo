@@ -6,11 +6,11 @@ pg.init()
 
 class Entity:
     def __init__(self, rect: pg.Rect = (0,0,0,0), img:pg.surface.Surface = None, vel: list[float] = [0,0], accel: list[float] = [0,0]) -> None:
-        self.active: bool = True
-        self.visible: bool = True;
-        self.solid: bool = True;
-        self.rect: pg.Rect = pg.Rect(rect)
-        self.img: pg.surface.Surface = img
+        self.active: bool = True #should run update
+        self.visible: bool = True #should run render
+        self.solid: bool = True #should handle collisions
+        self.rect: pg.Rect = pg.Rect(rect) #size and position
+        self.img: pg.surface.Surface = img #image pixel data
         
         if not isinstance(self.img,pg.surface.Surface):
             self.img = pg.surface.Surface(self.rect.size)
@@ -42,7 +42,7 @@ class Entity:
             if not self.solid or not other.solid:
                 return False
             else:
-                return self.rect.collide
+                return self.rect.colliderect(other.rect)
         else:
             return False
         #end if
@@ -50,10 +50,12 @@ class Entity:
 #end Entity
     
 class GameState(Entity):
-    def __init__(self, renderSize: list[int] = (800,600), renderBuffer: pg.surface.Surface = None, entities: list[Entity] = list()) -> None:
-        super().__init__(((0,0),renderSize),renderBuffer)
-        self.entities: list[Entity] = entities
+    def __init__(self, renderSize: list[int] = (800,600)) -> None:
+        super().__init__(((0,0),renderSize))
+        self.entities: list[Entity] = list()
         self.exitCode: int = 0
+        self.active = False
+        self.visible = False
         
         return
     #end __init__
@@ -126,6 +128,25 @@ class GameState(Entity):
         
         return
     #end onMousePosUpdate
+
+    def onJoyButtonPressed(self, button: int) -> None:
+
+        return
+    #end onJoyButtonPressed
+    
+    def onStateEnter(self) -> None:
+        self.visible = True
+        self.active = True
+        
+        return
+    #end onStateEnter
+    
+    def onStateExit(self) -> None:
+        self.visible = False
+        self.active = False
+        
+        return
+    #end onStateExit
 #end GameState
     
 class Game(Entity):
@@ -189,6 +210,10 @@ class Game(Entity):
                 if isinstance(self.state,GameState):
                     self.state.onMouseButtonReleased(event.button)
                 #end if
+            elif event.type == pg.JOYBUTTONDOWN:
+                if isinstance(self.state,GameState):
+                    self.state.onJoyButtonPressed(event.button)
+                #end if
             #end if
         #end for
         
@@ -204,7 +229,9 @@ class Game(Entity):
     
     def update(self, deltaTime: float) -> None:
         if isinstance(self.state,GameState):
-            self.state.update(deltaTime)
+            if self.state.active:
+                self.state.update(deltaTime)
+            #end if
         #end if
         
         return
@@ -216,8 +243,10 @@ class Game(Entity):
         
         #call the state's render function and render and scale it's buffer to the display
         if isinstance(self.state,GameState):
-            self.state.render(renderBuffer)
-            pg.transform.scale(self.state.img,self.rect.size,self.img)
+            if self.state.visible:
+                self.state.render(renderBuffer)
+                pg.transform.scale(self.state.img,self.rect.size,self.img)
+            #end if
         #end if
             
         #present the display buffer
@@ -231,4 +260,31 @@ class Game(Entity):
         
         return
     #end if
+    
+    def enterState(self, state: GameState) -> None:
+        if isinstance(state, GameState):
+            self.state = state
+        #end if
+            
+        self.state.onStateEnter()
+        
+        return
+    #end enterState
+    
+    def exitState(self) -> None:
+        if isinstance(self.state,GameState):
+            self.state.onStateExit()
+        #end if
+        
+        self.state = None
+        
+        return
+    #end exitState
+    
+    def switchState(self, state: GameState) -> None:
+        self.exitState()
+        self.enterState(state)
+        
+        return
+    #end switchState
 #end Game
