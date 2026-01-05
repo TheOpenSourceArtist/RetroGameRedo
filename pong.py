@@ -73,13 +73,13 @@ class AIPaddle(Paddle):
             
             #paddle should be more inclined to keep its current move direction
             if self.moveDir == UP:
-                upChance *= 4
-                stopChance *= 0.25
+                upChance *= 5
+                stopChance *= 0.2
                 downChance *= 0.0
             elif self.moveDir == DOWN:
                 upChance *= 0.0
-                stopChance *= 0.25
-                downChance *= 4
+                stopChance *= 0.2
+                downChance *= 5
             #end if
             
             #influence move direction by y position of the ball
