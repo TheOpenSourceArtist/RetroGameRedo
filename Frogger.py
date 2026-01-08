@@ -2,7 +2,7 @@ from SimplerGE import *
 from random import choices, choice, randint
 from PIL import Image
 
-GAMESTATE_MENU: int = 0
+GAMESTATE_MENU: int = 10
 GAMESTATE_PLAY_1P: int = 1
 GAMESTATE_PLAY_2P: int = 2
 GAMESTATE_HIGH_SCORE: int = 3
@@ -508,7 +508,7 @@ class RiverLine(Entity):
     #end handleBounds
 #end RiverLine
     
-class BloodSport(Entity):
+class BloodSplatter(Entity):
     def __init__(self) -> None:
         super().__init__((0,0,10,10))
         self.img.fill(SGE_COLORKEY_DEFAULT)
@@ -536,6 +536,63 @@ class BloodSport(Entity):
         for spot in self.spots:
             renderBuffer.blit(spot.img,(self.rect.centerx + spot.rect.centerx, self.rect.centery + spot.rect.centery))
         #end for
+        
+        return
+    #end render
+#end BloodSplatter
+    
+class BloodSport(Entity):
+    def __init__(self) -> None:
+        super().__init__((0,0,20,20))
+        self.numSpots: int = 10
+        self.spots: list[Entity] = [Entity((0,0,randint(4,6),randint(4,6))) for x in range(self.numSpots)]
+        
+        for spot in self.spots:
+            spot.img.fill((255,0,255))
+            pg.draw.circle(spot.img,(100,0,25),spot.rect.center,spot.rect.w / 2)
+            spot.velocity = pg.math.Vector2.from_polar((randint(3,5),randint(0,359)))
+        #end for
+            
+        self.activeTimer: float = 300
+        self.activeTimeDelta: float = 0
+        
+        return
+    #end __init__
+    
+    def fire(self) -> None:
+        self.activeTimeDelta = 0
+        self.active = True
+        
+        for spot in self.spots:
+            spot.rect.center = self.rect.center
+            spot.velocity = pg.math.Vector2.from_polar((randint(3,5),randint(0,359)))
+        #end for
+        
+        return
+    #end fire
+    
+    def update(self, deltaTime: float) -> None:
+        self.activeTimeDelta += deltaTime
+        
+        if self.activeTimeDelta >= self.activeTimer:
+            self.active = False
+        #end if
+            
+        if self.active:
+            for spot in self.spots:
+                spot.update(deltaTime)
+            #end for
+        #end if
+        
+        return
+    #end update
+    
+    def render(self, renderBuffer: pg.surface.Surface) -> None:
+        if self.active:
+            for spot in self.spots:
+                spot.render(renderBuffer)
+            #end for
+        #end if
         
         return
     #end render
@@ -567,6 +624,15 @@ class Header(Entity):
         
         return
     #end __init__
+    
+    def reset(self) -> None:
+        self.numLives: int = 5
+        self.numScore: int = 0
+        self.numSeconds: int = 100
+        self.curTime: int = 0
+        
+        return
+    #end reset
     
     def render(self, renderBuffer: pg.surface.Surface) -> None:
         self.lives.render(renderBuffer)
@@ -819,6 +885,11 @@ class Menu(GameState):
         return
     #end __init__
     
+    def reset(self) -> None:
+        
+        return
+    #end reset
+    
     def update(self, deltaTime:float) -> None:
         super().update(deltaTime)
         self.selector.rect = self.selectorRects[self.selectorRectNum] 
@@ -870,7 +941,10 @@ class Play(GameState):
         self.gayFrogs: GayFrogs = GayFrogs()
         self.frog: Frog = Frog(self.bg.tileGrid[13][9].topleft)
         self.header: Header = Header()
-        self.blood: BloodSport = BloodSport()
+        self.blood: BloodSplatter = BloodSplatter()
+        self.bloodSport: BloodSport = BloodSport()
+        self.bloodSport.rect.x = -1000
+        self.bloodSport.active = False
         
         self.entities.append(self.bg)
         self.entities.append(self.riverRow1)
@@ -885,9 +959,20 @@ class Play(GameState):
         self.entities.append(self.gayFrogs)
         self.entities.append(self.frog)
         self.entities.append(self.header)
+        self.entities.append(self.bloodSport)
         
         return
     #end __init__
+    
+    def reset(self) -> None:
+        self.header.reset()
+        self.frog.spawn()
+        self.blood.rect.x = -1000
+        self.bloodSport.rect.x = -1000
+        self.bloodSport.active = False
+        
+        return
+    #end reset
     
     def onKeyPressed(self, key: int) -> None:
         if key == pg.K_RIGHT:
@@ -934,9 +1019,11 @@ class Play(GameState):
         #end if
         
         if key==pg.K_SPACE:
-            strimg = pg.image.tostring(self.img,'RGB',False)
-            img = Image.frombytes('RGB',self.img.get_size(),strimg)
-            img.save("gfx/screenshot.png")
+#             strimg = pg.image.tostring(self.img,'RGB',False)
+#             img = Image.frombytes('RGB',self.img.get_size(),strimg)
+#             img.save("gfx/screenshot.png")
+#             self.bloodSport.fire()
+            pass
             
         return
     #end onKeyPressed
@@ -987,6 +1074,8 @@ class Play(GameState):
         if self.trucks.collide(self.frog.collisionRect):
             self.blood.rect.center = self.frog.rect.center
             self.blood.visible = True
+            self.bloodSport.rect.center = self.frog.rect.center
+            self.bloodSport.fire()
             self.frog.spawn()
             self.header.numLives -= 1
         #end if
@@ -994,6 +1083,8 @@ class Play(GameState):
         if self.purpleCars.collide(self.frog.collisionRect):
             self.blood.rect.center = self.frog.rect.center
             self.blood.visible = True
+            self.bloodSport.rect.center = self.frog.rect.center
+            self.bloodSport.fire()
             self.frog.spawn()
             self.header.numLives -= 1
         #end if
@@ -1001,6 +1092,8 @@ class Play(GameState):
         if self.redCars.collide(self.frog.collisionRect):
             self.blood.rect.center = self.frog.rect.center
             self.blood.visible = True
+            self.bloodSport.rect.center = self.frog.rect.center
+            self.bloodSport.fire()
             self.frog.spawn()
             self.header.numLives -= 1
         #end if
@@ -1008,7 +1101,10 @@ class Play(GameState):
         if self.semis.collide(self.frog.collisionRect):
             self.blood.rect.center = self.frog.rect.center
             self.blood.visible = True
+            self.bloodSport.rect.center = self.frog.rect.center
+            self.bloodSport.fire()
             self.frog.spawn()
+            self.bloodSport.fire()
             self.header.numLives -= 1
         #end if
             
@@ -1025,12 +1121,16 @@ class Play(GameState):
             
             if isinstance(entity, Gator):
                 if self.frog.collide(entity.head.rect):
+                    self.bloodSport.rect.center = self.frog.rect.center
+                    self.bloodSport.fire()
                     self.frog.spawn()
                     self.header.numLives -= 1
                 #end if
             elif isinstance(entity, Turtle):
                 if self.frog.collide(entity.rect):
                     if entity.stateNum in (4,9):
+                        self.bloodSport.rect.center = self.frog.rect.center
+                        self.bloodSport.fire()
                         self.frog.spawn()
                         self.header.numLives -= 1
                     #end if
@@ -1044,12 +1144,16 @@ class Play(GameState):
             
             if isinstance(entity, Gator):
                 if self.frog.collide(entity.head.rect):
+                    self.bloodSport.rect.center = self.frog.rect.center
+                    self.bloodSport.fire()
                     self.frog.spawn()
                     self.header.numLives -= 1
                 #end if
             elif isinstance(entity, Turtle):
                 if self.frog.collide(entity.rect):
                     if entity.stateNum in (4,9):
+                        self.bloodSport.rect.center = self.frog.rect.center
+                        self.bloodSport.fire()
                         self.frog.spawn()
                         self.header.numLives -= 1
                     #end if
@@ -1064,12 +1168,16 @@ class Play(GameState):
             
             if isinstance(entity, Gator):
                 if self.frog.collide(entity.head.rect):
+                    self.bloodSport.rect.center = self.frog.rect.center
+                    self.bloodSport.fire()
                     self.frog.spawn()
                     self.header.numLives -= 1
                 #end if
             elif isinstance(entity, Turtle):
                 if self.frog.collide(entity.rect):
                     if entity.stateNum in (4,9):
+                        self.bloodSport.rect.center = self.frog.rect.center
+                        self.bloodSport.fire()
                         self.frog.spawn()
                         self.header.numLives -= 1
                     #end if
@@ -1083,12 +1191,16 @@ class Play(GameState):
             
             if isinstance(entity, Gator):
                 if self.frog.collide(entity.head.rect):
+                    self.bloodSport.rect.center = self.frog.rect.center
+                    self.bloodSport.fire()
                     self.frog.spawn()
                     self.header.numLives -= 1
                 #end if
             elif isinstance(entity, Turtle):
                 if self.frog.collide(entity.rect):
                     if entity.stateNum in (4,9):
+                        self.bloodSport.rect.center = self.frog.rect.center
+                        self.bloodSport.fire()
                         self.frog.spawn()
                         self.header.numLives -= 1
                     #end if
@@ -1123,6 +1235,8 @@ class Play(GameState):
             for y in range(3,7):
                 for x in range(20):
                     if self.bg.tileGrid[y][x].colliderect(self.frog):
+                        self.bloodSport.rect.center = self.frog.rect.center
+                        self.bloodSport.fire()
                         self.frog.spawn()
                         self.header.numLives -= 1
                     #end if
@@ -1145,11 +1259,16 @@ class Play(GameState):
         if self.frog.rect.bottom >= self.rect.h:
             self.frog.rect.bottom = self.rect.h - 1
             
-        #check for end game
+        #check for frogs cleared
         if all([x == 0 for x in self.gayFrogs.states]):
             self.gayFrogs.reset()
             self.header.numScore += 1000
             self.frog.spawn()
+        #end if
+            
+        #check for end game
+        if self.header.numLives < 0:
+            self.exitCode = GAMESTATE_MENU
         #end if
         
         return
@@ -1163,13 +1282,7 @@ class Frogger(Game):
         self.menuState: GameState = Menu()
         self.playState: GameState = Play()
         
-        self.states: list[GameState] = [
-            self.menuState
-            ,self.playState
-        ]
-        self.stateNum: int = 0
-        
-        self.switchState(self.states[self.stateNum])
+        self.switchState(self.menuState)
         
         return
     #end __init__
@@ -1177,8 +1290,12 @@ class Frogger(Game):
     def update(self, deltaTime: float) -> None:
         super().update(deltaTime)
         
-        if self.state.exitCode == 1:
+        if self.state.exitCode == GAMESTATE_PLAY_1P:
+            self.playState.reset()
             self.switchState(self.playState)
+        elif self.state.exitCode == GAMESTATE_MENU:
+            self.menuState.reset()
+            self.switchState(self.menuState)
         #end if
         
         return
@@ -1187,7 +1304,13 @@ class Frogger(Game):
 
 def main() -> None:
     frogger: Frogger = Frogger()
-    frogger.run()
+    
+    try:
+        frogger.run()
+    except Exception as e:
+        print(e)
+        Frogger.active = False
+    #end try
     
     return
 #end main
