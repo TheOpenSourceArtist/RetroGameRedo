@@ -137,6 +137,7 @@ class GameState(Entity):
     def onStateEnter(self) -> None:
         self.visible = True
         self.active = True
+        self.exitCode = 0
         
         return
     #end onStateEnter
@@ -144,6 +145,7 @@ class GameState(Entity):
     def onStateExit(self) -> None:
         self.visible = False
         self.active = False
+        self.exitCode = 0
         
         return
     #end onStateExit
