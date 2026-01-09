@@ -14,7 +14,7 @@ class Snake (RGBSurface):
         #Snake Image/Creation
         self.img.fill((0,255,0))
         self.bodyParts = [self.img]
-        self.bodyPosition = [self.rect, self.rect.move(-20,0)]
+        self.bodyPosition = [self.rect,pg.Rect(-20,0,20,20)]
         self.delay = 200
         self.curTick = 0
         self.prevTick = 0
@@ -36,11 +36,12 @@ class Snake (RGBSurface):
     def update(self, deltaTime):
         self.moveTimePast += deltaTime
 
-        for positionIndex in range(len(self.bodyPosition) -1,-1,-1):
-            self.bodyPosition[positionIndex].center = self.bodyPosition[positionIndex-1].center
-        
+
         if self.moveTimePast >= self.moveTimer:
             self.moveTimePast = 0
+            for positionIndex in range(len(self.bodyPosition) -1,0,-1):
+                self.bodyPosition[positionIndex].x = self.bodyPosition[positionIndex-1].x
+                self.bodyPosition[positionIndex].y = self.bodyPosition[positionIndex-1].y
             if self.direction == right:
                 self.rect.x += self.rect.w
             if self.direction == left:
@@ -55,7 +56,6 @@ class Snake (RGBSurface):
 
     def render(self, renderBuffer) -> None:
         for position in self.bodyPosition:
-            print(position)
             renderBuffer.blit(self.img, position)
             
         
@@ -110,8 +110,7 @@ class SnakeState(GameState):
     
             #self.Snake.bodyParts.append(pg.surface.Surface([self.Snake.rect.w, self.Snake.rect.h]))
             #self.Snake.bodyParts[-1].fill((0,255,0))
-            self.Snake.bodyPosition.append(self.Snake.bodyParts[-1])
-            print(self.Snake.bodyParts)
+            self.Snake.bodyPosition.append(self.Snake.bodyPosition[-1].move(0,0))
         return
 
     def render (self):
