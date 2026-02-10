@@ -8,8 +8,8 @@ GAMESTATE_PLAY_2P: int = 2
 GAMESTATE_HIGH_SCORE: int = 3
 
 class Frog(Entity):
-    def __init__(self, spawnPoint: list[int] = [0,0]) -> None:
-        super().__init__((spawnPoint,(16,16)),pg.image.load('gfx/frog16x16.bmp'))
+    def __init__(self, spawnPoint: list[int] = [0,0], frogImg: str = 'gfx/frog16x16.bmp') -> None:
+        super().__init__((spawnPoint,(16,16)),pg.image.load(frogImg))
         self.speed: int = 20
         self.spawnPoint: pg.Rect = pg.Rect(self.rect)
         self.states: list[pg.surface.Surface] = [
@@ -52,6 +52,7 @@ class Frog(Entity):
     def spawn(self) -> None:
         self.rect.center = self.spawnPoint.center
         self.state = 0
+        self.mount = None
         
         return
     #end spawn
@@ -607,18 +608,35 @@ class Header(Entity):
         self.numLives: int = 5
         self.lives.img = self.font.render("LIVES: %d" % self.numLives, False, (255,255,255))
         self.lives.rect = self.lives.img.get_rect()
+        self.lives.rect.topleft = (0,0)
         
         self.score: Entity = Entity()
         self.numScore: int = 0
-        self.score.img = self.font.render("SCORE: %s" % format(self.numScore,'0=6d'), False, (255,255,255))
+        self.score.img = self.font.render("SCORE: %s" % format(self.numScore,'0=4d'), False, (255,255,255))
         self.score.rect = self.score.img.get_rect()
-        self.score.rect.centerx = self.rect.centerx
+        self.score.rect.topleft = self.lives.rect.topright
+        self.score.rect.left += 6
+        
+        self.lives2: Entity = Entity()
+        self.numLives2: int = 5
+        self.lives2.img = self.font.render("LIVES 2: %d" % self.numLives2, False, (255,255,255))
+        self.lives2.rect = self.lives2.img.get_rect()
+        self.lives2.rect.topleft = self.score.rect.topright
+        self.lives2.rect.left += 10
+        
+        self.score2: Entity = Entity()
+        self.numScore2: int = 0
+        self.score2.img = self.font.render("SCORE 2: %s" % format(self.numScore2,'0=4d'), False, (255,255,255))
+        self.score2.rect = self.score2.img.get_rect()
+        self.score2.rect.topleft = self.lives2.rect.topright
+        self.score2.rect.left += 6
         
         self.time: Entity = Entity()
         self.numSeconds: int = 100
         self.time.img = self.font.render("TIME: %s" % format(self.numSeconds,'0=3d'), False, (255,255,255))
         self.time.rect = self.time.img.get_rect()
-        self.time.rect.right = self.rect.right
+        self.time.rect.topleft = self.score2.rect.topright
+        self.time.rect.left += 6
         
         self.curTime: int = 0
         
@@ -628,6 +646,8 @@ class Header(Entity):
     def reset(self) -> None:
         self.numLives: int = 5
         self.numScore: int = 0
+        self.numLives2: int = 5
+        self.numScore2: int = 0
         self.numSeconds: int = 100
         self.curTime: int = 0
         
@@ -636,7 +656,9 @@ class Header(Entity):
     
     def render(self, renderBuffer: pg.surface.Surface) -> None:
         self.lives.render(renderBuffer)
+        self.lives2.render(renderBuffer)
         self.score.render(renderBuffer)
+        self.score2.render(renderBuffer)
         self.time.render(renderBuffer)
         
         return
@@ -651,8 +673,11 @@ class Header(Entity):
             self.time.img = self.font.render("TIME: %s" % format(self.numSeconds,'0=3d'), False, (255,255,255))
         #end if
             
-        self.score.img = self.font.render("SCORE: %s" % format(self.numScore,'0=6d'), False, (255,255,255))
+        self.score.img = self.font.render("SCORE: %s" % format(self.numScore,'0=4d'), False, (255,255,255))
         self.lives.img = self.font.render("LIVES: %d" % self.numLives, False, (255,255,255))
+        
+        self.score2.img = self.font.render("SCORE 2: %s" % format(self.numScore2,'0=4d'), False, (255,255,255))
+        self.lives2.img = self.font.render("LIVES 2: %d" % self.numLives2, False, (255,255,255))
         
         return
     #end update
@@ -917,15 +942,21 @@ class Menu(GameState):
     def onKeyReleased(self, key: int) -> None:
         if key == pg.K_SPACE or key == pg.K_RETURN:
             if self.selector.collide(self.player1):
-                self.exitCode = 1
+                self.exitCode = GAMESTATE_PLAY_1P
+            elif self.selector.collide(self.player2):
+                self.exitCode = GAMESTATE_PLAY_2P
+            #end if
+        #end if
         
         return
     #end onKeyReleased
 #end Menu
 
 class Play(GameState):
-    def __init__(self) -> None:
+    def __init__(self, numPlayers: int = 1) -> None:
         super().__init__([400,300])
+        
+        self.numPlayers: int = numPlayers
         
         #set up background tiles
         self.bg: TileBG = TileBG()
@@ -940,11 +971,26 @@ class Play(GameState):
         self.trucks: TrafficLine = TrafficLine((-36,242,36,16),'gfx/yellowTruck.bmp',2,0.5,6,-80)
         self.gayFrogs: GayFrogs = GayFrogs()
         self.frog: Frog = Frog(self.bg.tileGrid[13][9].topleft)
+        self.frog2: Frog = Frog(self.bg.tileGrid[13][11].topleft, 'gfx/frog2P16x16.bmp')
+        
+        if self.numPlayers == 2:
+            self.frog2.active = True
+            self.frog2.visible = True
+        else:
+            self.frog2.active = False
+            self.frog2.visible = False
+        #end if
+            
         self.header: Header = Header()
         self.blood: BloodSplatter = BloodSplatter()
         self.bloodSport: BloodSport = BloodSport()
         self.bloodSport.rect.x = -1000
         self.bloodSport.active = False
+        
+        self.blood2: BloodSplatter = BloodSplatter()
+        self.bloodSport2: BloodSport = BloodSport()
+        self.bloodSport2.rect.x = -1000
+        self.bloodSport2.active = False
         
         self.entities.append(self.bg)
         self.entities.append(self.riverRow1)
@@ -952,14 +998,17 @@ class Play(GameState):
         self.entities.append(self.riverRow3)
         self.entities.append(self.riverRow4)
         self.entities.append(self.blood)
+        self.entities.append(self.blood2)
         self.entities.append(self.semis)
         self.entities.append(self.redCars)
         self.entities.append(self.purpleCars)
         self.entities.append(self.trucks)
         self.entities.append(self.gayFrogs)
         self.entities.append(self.frog)
+        self.entities.append(self.frog2)
         self.entities.append(self.header)
         self.entities.append(self.bloodSport)
+        self.entities.append(self.bloodSport2)
         
         return
     #end __init__
@@ -967,55 +1016,111 @@ class Play(GameState):
     def reset(self) -> None:
         self.header.reset()
         self.frog.spawn()
+        self.frog2.spawn()
+        
+        if self.numPlayers == 2:
+            self.frog2.active = True
+            self.frog2.visible = True
+        else:
+            self.frog2.active = False
+            self.frog2.visible = False
+        #end if
+        
         self.blood.rect.x = -1000
         self.bloodSport.rect.x = -1000
         self.bloodSport.active = False
+        
+        self.blood2.rect.x = -1000
+        self.bloodSport2.rect.x = -1000
+        self.bloodSport2.active = False
         
         return
     #end reset
     
     def onKeyPressed(self, key: int) -> None:
-        if key == pg.K_RIGHT:
-            self.frog.state = 3
-            self.frog.rect.x += self.frog.speed
+        if self.frog.active:
+            if key == pg.K_RIGHT:
+                self.frog.state = 3
+                self.frog.rect.x += self.frog.speed
+                
+                if self.frog.rect.right >= self.rect.w:
+                    self.frog.rect.right = self.rect.w - 1
+                #end if
+            #end if
             
-            if self.frog.rect.right >= self.rect.w:
-                self.frog.rect.right = self.rect.w - 1
+            if key == pg.K_LEFT:
+                self.frog.state = 1
+                self.frog.rect.x -= self.frog.speed
+                
+                if self.frog.rect.left < 0:
+                    self.frog.rect.left = 0
+                #end if
+            #end if
+                
+            if key == pg.K_UP:
+                self.frog.state = 0
+                self.frog.rect.y -= self.frog.speed
+                
+                if self.frog.rect.top <= self.bg.rect.h:
+                    self.frog.rect.top = self.bg.rect.h
+                #end if
+            #end if
+                
+            if key == pg.K_DOWN:
+                self.frog.state = 2
+                self.frog.rect.y += self.frog.speed
+                
+                if self.frog.rect.bottom >= self.rect.h:
+                    self.frog.rect.bottom = self.rect.h - 1
+                #end if
+            #end if
+            
+            if self.frog.mount == None:
+                #snap frog center to tile grid
+                tileX: int = int(self.frog.rect.x / self.bg.rect.w)
+                tileY: int = int(self.frog.rect.y / self.bg.rect.w)
+                self.frog.rect.center = self.bg.tileGrid[tileY][tileX].center
             #end if
         #end if
-        
-        if key == pg.K_LEFT:
-            self.frog.state = 1
-            self.frog.rect.x -= self.frog.speed
             
-            if self.frog.rect.left < 0:
-                self.frog.rect.left = 0
+        if self.numPlayers == 2:
+            if self.frog2.active:
+                if key == pg.K_w:
+                    self.frog2.state = 0
+                    self.frog2.rect.y -= self.frog2.speed
+                    
+                    if self.frog2.rect.top <= self.bg.rect.h:
+                        self.frog2.rect.top = self.bg.rect.h
+                    #end if
+                #end if
+                        
+                if key == pg.K_s:
+                    self.frog2.state = 2
+                    self.frog2.rect.y += self.frog2.speed
+                    
+                    if self.frog2.rect.bottom >= self.rect.h:
+                        self.frog2.rect.bottom = self.rect.h - 1
+                    #end if
+                #end if
+                        
+                if key == pg.K_a:
+                    self.frog2.state = 1
+                    self.frog2.rect.x -= self.frog2.speed
+                    
+                    if self.frog2.rect.left < 0:
+                        self.frog2.rect.left = 0
+                    #end if
+                #end if
+                        
+                if key == pg.K_d:
+                    self.frog2.state = 3
+                    self.frog2.rect.x += self.frog2.speed
+                    
+                    if self.frog2.rect.right >= self.rect.w:
+                        self.frog2.rect.right = self.rect.w - 1
+                    #end if
+                #end if
             #end if
-        #end if
-            
-        if key == pg.K_UP:
-            self.frog.state = 0
-            self.frog.rect.y -= self.frog.speed
-            
-            if self.frog.rect.top <= self.bg.rect.h:
-                self.frog.rect.top = self.bg.rect.h
-            #end if
-        #end if
-            
-        if key == pg.K_DOWN:
-            self.frog.state = 2
-            self.frog.rect.y += self.frog.speed
-            
-            if self.frog.rect.bottom >= self.rect.h:
-                self.frog.rect.bottom = self.rect.h - 1
-            #end if
-        #end if
-        
-        if self.frog.mount == None:
-            #snap frog center to tile grid
-            tileX: int = int(self.frog.rect.x / self.bg.rect.w)
-            tileY: int = int(self.frog.rect.y / self.bg.rect.w)
-            self.frog.rect.center = self.bg.tileGrid[tileY][tileX].center
         #end if
         
         if key==pg.K_SPACE:
@@ -1069,218 +1174,762 @@ class Play(GameState):
         self.riverRow2.handleBounds(self.rect)
         self.riverRow3.handleBounds(self.rect)
         self.riverRow4.handleBounds(self.rect)
-                
-        #check for collisions
-        if self.trucks.collide(self.frog.collisionRect):
-            self.blood.rect.center = self.frog.rect.center
-            self.blood.visible = True
-            self.bloodSport.rect.center = self.frog.rect.center
-            self.bloodSport.fire()
-            self.frog.spawn()
-            self.header.numLives -= 1
-        #end if
-            
-        if self.purpleCars.collide(self.frog.collisionRect):
-            self.blood.rect.center = self.frog.rect.center
-            self.blood.visible = True
-            self.bloodSport.rect.center = self.frog.rect.center
-            self.bloodSport.fire()
-            self.frog.spawn()
-            self.header.numLives -= 1
-        #end if
-            
-        if self.redCars.collide(self.frog.collisionRect):
-            self.blood.rect.center = self.frog.rect.center
-            self.blood.visible = True
-            self.bloodSport.rect.center = self.frog.rect.center
-            self.bloodSport.fire()
-            self.frog.spawn()
-            self.header.numLives -= 1
-        #end if
-            
-        if self.semis.collide(self.frog.collisionRect):
-            self.blood.rect.center = self.frog.rect.center
-            self.blood.visible = True
-            self.bloodSport.rect.center = self.frog.rect.center
-            self.bloodSport.fire()
-            self.frog.spawn()
-            self.bloodSport.fire()
-            self.header.numLives -= 1
-        #end if
-            
-        if self.gayFrogs.collide(self.frog.collisionRect):
-            self.frog.spawn()
-            self.header.numScore += self.header.numSeconds
-            self.header.numSeconds = 100
-        #end if
-            
-        #gator heads and turtles
-        for i in range(self.riverRow1.numRiverRects):
-            stateNum = self.riverRow1.riverEntities[i].stateNum
-            entity = self.riverRow1.riverEntities[i].states[stateNum]
-            
-            if isinstance(entity, Gator):
-                if self.frog.collide(entity.head.rect):
-                    self.bloodSport.rect.center = self.frog.rect.center
-                    self.bloodSport.fire()
-                    self.frog.spawn()
-                    self.header.numLives -= 1
-                #end if
-            elif isinstance(entity, Turtle):
-                if self.frog.collide(entity.rect):
-                    if entity.stateNum in (4,9):
-                        self.bloodSport.rect.center = self.frog.rect.center
-                        self.bloodSport.fire()
-                        self.frog.spawn()
-                        self.header.numLives -= 1
-                    #end if
-                #end if
-            #end if
-        #end for
-                    
-        for i in range(self.riverRow2.numRiverRects):
-            stateNum = self.riverRow2.riverEntities[i].stateNum
-            entity = self.riverRow2.riverEntities[i].states[stateNum]
-            
-            if isinstance(entity, Gator):
-                if self.frog.collide(entity.head.rect):
-                    self.bloodSport.rect.center = self.frog.rect.center
-                    self.bloodSport.fire()
-                    self.frog.spawn()
-                    self.header.numLives -= 1
-                #end if
-            elif isinstance(entity, Turtle):
-                if self.frog.collide(entity.rect):
-                    if entity.stateNum in (4,9):
-                        self.bloodSport.rect.center = self.frog.rect.center
-                        self.bloodSport.fire()
-                        self.frog.spawn()
-                        self.header.numLives -= 1
-                    #end if
-                #end if
-            #end if
-            #end if
-        #end for
-                    
-        for i in range(self.riverRow3.numRiverRects):
-            stateNum = self.riverRow3.riverEntities[i].stateNum
-            entity = self.riverRow3.riverEntities[i].states[stateNum]
-            
-            if isinstance(entity, Gator):
-                if self.frog.collide(entity.head.rect):
-                    self.bloodSport.rect.center = self.frog.rect.center
-                    self.bloodSport.fire()
-                    self.frog.spawn()
-                    self.header.numLives -= 1
-                #end if
-            elif isinstance(entity, Turtle):
-                if self.frog.collide(entity.rect):
-                    if entity.stateNum in (4,9):
-                        self.bloodSport.rect.center = self.frog.rect.center
-                        self.bloodSport.fire()
-                        self.frog.spawn()
-                        self.header.numLives -= 1
-                    #end if
-                #end if
-            #end if
-        #end for
-                    
-        for i in range(self.riverRow4.numRiverRects):
-            stateNum = self.riverRow4.riverEntities[i].stateNum
-            entity = self.riverRow4.riverEntities[i].states[stateNum]
-            
-            if isinstance(entity, Gator):
-                if self.frog.collide(entity.head.rect):
-                    self.bloodSport.rect.center = self.frog.rect.center
-                    self.bloodSport.fire()
-                    self.frog.spawn()
-                    self.header.numLives -= 1
-                #end if
-            elif isinstance(entity, Turtle):
-                if self.frog.collide(entity.rect):
-                    if entity.stateNum in (4,9):
-                        self.bloodSport.rect.center = self.frog.rect.center
-                        self.bloodSport.fire()
-                        self.frog.spawn()
-                        self.header.numLives -= 1
-                    #end if
-                #end if
-            #end if
-        #end for
-            
-        self.frog.mount = None
         
-        if self.riverRow4.collide(self.frog.collisionRect):
-            self.frog.mount = self.riverRow4
-        #end if
-            
-        if self.riverRow3.collide(self.frog.collisionRect):
-            self.frog.mount = self.riverRow3
-        #end if
-            
-        if self.riverRow2.collide(self.frog.collisionRect):
-            self.frog.mount = self.riverRow2
-        #end if
-            
-        if self.riverRow1.collide(self.frog.collisionRect):
-            self.frog.mount = self.riverRow1
-        #end if
-            
-        if self.frog.mount == None:
-            #snap frog center to tile grid
-            tileX: int = int(self.frog.rect.x / self.bg.rect.w)
-            tileY: int = int(self.frog.rect.y / self.bg.rect.w)
-            self.frog.rect.center = self.bg.tileGrid[tileY][tileX].center
-            
-            for y in range(3,7):
-                for x in range(20):
-                    if self.bg.tileGrid[y][x].colliderect(self.frog):
-                        self.bloodSport.rect.center = self.frog.rect.center
-                        self.bloodSport.fire()
+        #handle 1p and 2p
+        if self.numPlayers == 1:
+            #handle Frog 1
+            if self.frog.active:
+                #check for collisions
+                #trucks
+                if self.trucks.collide(self.frog.collisionRect):
+                    self.blood.rect.center = self.frog.rect.center
+                    self.blood.visible = True
+                    self.bloodSport.rect.center = self.frog.rect.center
+                    self.bloodSport.fire()
+                    self.frog.spawn()
+                    self.header.numLives -= 1
+                #end if
+                
+                #purple cars
+                if self.purpleCars.collide(self.frog.collisionRect):
+                    self.blood.rect.center = self.frog.rect.center
+                    self.blood.visible = True
+                    self.bloodSport.rect.center = self.frog.rect.center
+                    self.bloodSport.fire()
+                    self.frog.spawn()
+                    self.header.numLives -= 1
+                #end if
+                
+                #red cars
+                if self.redCars.collide(self.frog.collisionRect):
+                    self.blood.rect.center = self.frog.rect.center
+                    self.blood.visible = True
+                    self.bloodSport.rect.center = self.frog.rect.center
+                    self.bloodSport.fire()
+                    self.frog.spawn()
+                    self.header.numLives -= 1
+                #end if
+                
+                #semis
+                if self.semis.collide(self.frog.collisionRect):
+                    self.blood.rect.center = self.frog.rect.center
+                    self.blood.visible = True
+                    self.bloodSport.rect.center = self.frog.rect.center
+                    self.bloodSport.fire()
+                    self.frog.spawn()
+                    self.bloodSport.fire()
+                    self.header.numLives -= 1
+                #end if
+                
+                #gay frogs
+                if self.gayFrogs.collide(self.frog.collisionRect):
+                    self.frog.spawn()
+                    self.header.numScore += self.header.numSeconds
+                    self.header.numSeconds = 100
+                    
+                    #check for frogs cleared
+                    if all([x == 0 for x in self.gayFrogs.states]):
+                        self.gayFrogs.reset()
+                        self.header.numScore += 1000
                         self.frog.spawn()
-                        self.header.numLives -= 1
+                    #end if
+                #end if
+                    
+                #gator heads and turtles
+                #river row 1
+                for i in range(self.riverRow1.numRiverRects):
+                    stateNum = self.riverRow1.riverEntities[i].stateNum
+                    entity = self.riverRow1.riverEntities[i].states[stateNum]
+                    
+                    if isinstance(entity, Gator):
+                        if self.frog.collide(entity.head.rect):
+                            self.bloodSport.rect.center = self.frog.rect.center
+                            self.bloodSport.fire()
+                            self.frog.spawn()
+                            self.header.numLives -= 1
+                        #end if
+                    elif isinstance(entity, Turtle):
+                        if self.frog.collide(entity.rect):
+                            if entity.stateNum in (4,9):
+                                self.bloodSport.rect.center = self.frog.rect.center
+                                self.bloodSport.fire()
+                                self.frog.spawn()
+                                self.header.numLives -= 1
+                            #end if
+                        #end if
                     #end if
                 #end for
-            #end for
-        #end if
-                        
-        if self.frog.rect.left < 0:
-            self.frog.rect.left = 0
-        #end if
-        
-        if self.frog.rect.right >= self.rect.w:
-            self.frog.rect.right = self.rect.w - 1
-        #end if
-        
-        if self.frog.rect.top < 0:
-            self.frog.rect.top = 0
-        #end if
-        
-        if self.frog.rect.bottom >= self.rect.h:
-            self.frog.rect.bottom = self.rect.h - 1
+                
+                #river row 2
+                for i in range(self.riverRow2.numRiverRects):
+                    stateNum = self.riverRow2.riverEntities[i].stateNum
+                    entity = self.riverRow2.riverEntities[i].states[stateNum]
+                    
+                    if isinstance(entity, Gator):
+                        if self.frog.collide(entity.head.rect):
+                            self.bloodSport.rect.center = self.frog.rect.center
+                            self.bloodSport.fire()
+                            self.frog.spawn()
+                            self.header.numLives -= 1
+                        #end if
+                    elif isinstance(entity, Turtle):
+                        if self.frog.collide(entity.rect):
+                            if entity.stateNum in (4,9):
+                                self.bloodSport.rect.center = self.frog.rect.center
+                                self.bloodSport.fire()
+                                self.frog.spawn()
+                                self.header.numLives -= 1
+                            #end if
+                        #end if
+                    #end if
+                #end for
+                
+                #river row 3
+                for i in range(self.riverRow3.numRiverRects):
+                    stateNum = self.riverRow3.riverEntities[i].stateNum
+                    entity = self.riverRow3.riverEntities[i].states[stateNum]
+                    
+                    if isinstance(entity, Gator):
+                        if self.frog.collide(entity.head.rect):
+                            self.bloodSport.rect.center = self.frog.rect.center
+                            self.bloodSport.fire()
+                            self.frog.spawn()
+                            self.header.numLives -= 1
+                        #end if
+                    elif isinstance(entity, Turtle):
+                        if self.frog.collide(entity.rect):
+                            if entity.stateNum in (4,9):
+                                self.bloodSport.rect.center = self.frog.rect.center
+                                self.bloodSport.fire()
+                                self.frog.spawn()
+                                self.header.numLives -= 1
+                            #end if
+                        #end if
+                    #end if
+                #end for
+                
+                #river row 4
+                for i in range(self.riverRow4.numRiverRects):
+                    stateNum = self.riverRow4.riverEntities[i].stateNum
+                    entity = self.riverRow4.riverEntities[i].states[stateNum]
+                    
+                    if isinstance(entity, Gator):
+                        if self.frog.collide(entity.head.rect):
+                            self.bloodSport.rect.center = self.frog.rect.center
+                            self.bloodSport.fire()
+                            self.frog.spawn()
+                            self.header.numLives -= 1
+                        #end if
+                    elif isinstance(entity, Turtle):
+                        if self.frog.collide(entity.rect):
+                            if entity.stateNum in (4,9):
+                                self.bloodSport.rect.center = self.frog.rect.center
+                                self.bloodSport.fire()
+                                self.frog.spawn()
+                                self.header.numLives -= 1
+                            #end if
+                        #end if
+                    #end if
+                #end for
+                                
+                #check for mounts
+                self.frog.mount = None
+                
+                if self.riverRow4.collide(self.frog.collisionRect):
+                    self.frog.mount = self.riverRow4
+                #end if
+                    
+                if self.riverRow3.collide(self.frog.collisionRect):
+                    self.frog.mount = self.riverRow3
+                #end if
+                    
+                if self.riverRow2.collide(self.frog.collisionRect):
+                    self.frog.mount = self.riverRow2
+                #end if
+                    
+                if self.riverRow1.collide(self.frog.collisionRect):
+                    self.frog.mount = self.riverRow1
+                #end if
+                    
+                if self.frog.mount == None:
+                    #snap frog center to tile grid
+                    tileX: int = int(self.frog.rect.x / self.bg.rect.w)
+                    tileY: int = int(self.frog.rect.y / self.bg.rect.w)
+                    self.frog.rect.center = self.bg.tileGrid[tileY][tileX].center
+                    
+                    for y in range(3,7):
+                        for x in range(20):
+                            if self.bg.tileGrid[y][x].colliderect(self.frog):
+                                self.bloodSport.rect.center = self.frog.rect.center
+                                self.bloodSport.fire()
+                                self.frog.spawn()
+                                self.header.numLives -= 1
+                            #end if
+                        #end for
+                    #end for
+                #end if
+                                
+                #align frogs
+                if self.frog.rect.left < 0:
+                    self.frog.rect.left = 0
+                #end if
+                
+                if self.frog.rect.right >= self.rect.w:
+                    self.frog.rect.right = self.rect.w - 1
+                #end if
+                
+                if self.frog.rect.top < 0:
+                    self.frog.rect.top = 0
+                #end if
+                
+                if self.frog.rect.bottom >= self.rect.h:
+                    self.frog.rect.bottom = self.rect.h - 1
+                #end if
+                    
+                #check for time out
+                if self.header.numSeconds < 0:
+                    self.frog.spawn()
+                    self.header.numLives -= 1
+                #end if
+                
+                #check for end game
+                if self.header.numLives < 0:
+                    self.exitCode = GAMESTATE_HIGH_SCORE
+                #end if
+            #end if
+        elif self.numPlayers == 2:
+            if self.frog.active:
+                #check for collisions
+                #trucks
+                if self.trucks.collide(self.frog.collisionRect):
+                    self.blood.rect.center = self.frog.rect.center
+                    self.blood.visible = True
+                    self.bloodSport.rect.center = self.frog.rect.center
+                    self.bloodSport.fire()
+                    self.frog.spawn()
+                    self.header.numLives -= 1
+                #end if
+                
+                #purple cars
+                if self.purpleCars.collide(self.frog.collisionRect):
+                    self.blood.rect.center = self.frog.rect.center
+                    self.blood.visible = True
+                    self.bloodSport.rect.center = self.frog.rect.center
+                    self.bloodSport.fire()
+                    self.frog.spawn()
+                    self.header.numLives -= 1
+                #end if
+                
+                #red cars
+                if self.redCars.collide(self.frog.collisionRect):
+                    self.blood.rect.center = self.frog.rect.center
+                    self.blood.visible = True
+                    self.bloodSport.rect.center = self.frog.rect.center
+                    self.bloodSport.fire()
+                    self.frog.spawn()
+                    self.header.numLives -= 1
+                #end if
+                
+                #semis
+                if self.semis.collide(self.frog.collisionRect):
+                    self.blood.rect.center = self.frog.rect.center
+                    self.blood.visible = True
+                    self.bloodSport.rect.center = self.frog.rect.center
+                    self.bloodSport.fire()
+                    self.frog.spawn()
+                    self.bloodSport.fire()
+                    self.header.numLives -= 1
+                #end if
+                
+                #gay frogs
+                if self.gayFrogs.collide(self.frog.collisionRect):
+                    self.frog.spawn()
+                    self.header.numScore += self.header.numSeconds
+                    self.header.numSeconds = 100
+                    
+                    #check for frogs cleared
+                    if all([x == 0 for x in self.gayFrogs.states]):
+                        self.gayFrogs.reset()
+                        self.header.numScore += 1000
+                        self.frog.spawn()
+                    #end if
+                #end if
+                    
+                #gator heads and turtles
+                #river row 1
+                for i in range(self.riverRow1.numRiverRects):
+                    stateNum = self.riverRow1.riverEntities[i].stateNum
+                    entity = self.riverRow1.riverEntities[i].states[stateNum]
+                    
+                    if isinstance(entity, Gator):
+                        if self.frog.collide(entity.head.rect):
+                            self.bloodSport.rect.center = self.frog.rect.center
+                            self.bloodSport.fire()
+                            self.frog.spawn()
+                            self.header.numLives -= 1
+                        #end if
+                    elif isinstance(entity, Turtle):
+                        if self.frog.collide(entity.rect):
+                            if entity.stateNum in (4,9):
+                                self.bloodSport.rect.center = self.frog.rect.center
+                                self.bloodSport.fire()
+                                self.frog.spawn()
+                                self.header.numLives -= 1
+                            #end if
+                        #end if
+                    #end if
+                #end for
+                
+                #river row 2
+                for i in range(self.riverRow2.numRiverRects):
+                    stateNum = self.riverRow2.riverEntities[i].stateNum
+                    entity = self.riverRow2.riverEntities[i].states[stateNum]
+                    
+                    if isinstance(entity, Gator):
+                        if self.frog.collide(entity.head.rect):
+                            self.bloodSport.rect.center = self.frog.rect.center
+                            self.bloodSport.fire()
+                            self.frog.spawn()
+                            self.header.numLives -= 1
+                        #end if
+                    elif isinstance(entity, Turtle):
+                        if self.frog.collide(entity.rect):
+                            if entity.stateNum in (4,9):
+                                self.bloodSport.rect.center = self.frog.rect.center
+                                self.bloodSport.fire()
+                                self.frog.spawn()
+                                self.header.numLives -= 1
+                            #end if
+                        #end if
+                    #end if
+                #end for
+                
+                #river row 3
+                for i in range(self.riverRow3.numRiverRects):
+                    stateNum = self.riverRow3.riverEntities[i].stateNum
+                    entity = self.riverRow3.riverEntities[i].states[stateNum]
+                    
+                    if isinstance(entity, Gator):
+                        if self.frog.collide(entity.head.rect):
+                            self.bloodSport.rect.center = self.frog.rect.center
+                            self.bloodSport.fire()
+                            self.frog.spawn()
+                            self.header.numLives -= 1
+                        #end if
+                    elif isinstance(entity, Turtle):
+                        if self.frog.collide(entity.rect):
+                            if entity.stateNum in (4,9):
+                                self.bloodSport.rect.center = self.frog.rect.center
+                                self.bloodSport.fire()
+                                self.frog.spawn()
+                                self.header.numLives -= 1
+                            #end if
+                        #end if
+                    #end if
+                #end for
+                
+                #river row 4
+                for i in range(self.riverRow4.numRiverRects):
+                    stateNum = self.riverRow4.riverEntities[i].stateNum
+                    entity = self.riverRow4.riverEntities[i].states[stateNum]
+                    
+                    if isinstance(entity, Gator):
+                        if self.frog.collide(entity.head.rect):
+                            self.bloodSport.rect.center = self.frog.rect.center
+                            self.bloodSport.fire()
+                            self.frog.spawn()
+                            self.header.numLives -= 1
+                        #end if
+                    elif isinstance(entity, Turtle):
+                        if self.frog.collide(entity.rect):
+                            if entity.stateNum in (4,9):
+                                self.bloodSport.rect.center = self.frog.rect.center
+                                self.bloodSport.fire()
+                                self.frog.spawn()
+                                self.header.numLives -= 1
+                            #end if
+                        #end if
+                    #end if
+                #end for
+                                
+                #check for mounts
+                self.frog.mount = None
+                
+                if self.riverRow4.collide(self.frog.collisionRect):
+                    self.frog.mount = self.riverRow4
+                #end if
+                    
+                if self.riverRow3.collide(self.frog.collisionRect):
+                    self.frog.mount = self.riverRow3
+                #end if
+                    
+                if self.riverRow2.collide(self.frog.collisionRect):
+                    self.frog.mount = self.riverRow2
+                #end if
+                    
+                if self.riverRow1.collide(self.frog.collisionRect):
+                    self.frog.mount = self.riverRow1
+                #end if
+                    
+                if self.frog.mount == None:
+                    #snap frog center to tile grid
+                    tileX: int = int(self.frog.rect.x / self.bg.rect.w)
+                    tileY: int = int(self.frog.rect.y / self.bg.rect.w)
+                    self.frog.rect.center = self.bg.tileGrid[tileY][tileX].center
+                    
+                    for y in range(3,7):
+                        for x in range(20):
+                            if self.bg.tileGrid[y][x].colliderect(self.frog):
+                                self.bloodSport.rect.center = self.frog.rect.center
+                                self.bloodSport.fire()
+                                self.frog.spawn()
+                                self.header.numLives -= 1
+                            #end if
+                        #end for
+                    #end for
+                #end if
+                                
+                #align frogs
+                if self.frog.rect.left < 0:
+                    self.frog.rect.left = 0
+                #end if
+                
+                if self.frog.rect.right >= self.rect.w:
+                    self.frog.rect.right = self.rect.w - 1
+                #end if
+                
+                if self.frog.rect.top < 0:
+                    self.frog.rect.top = 0
+                #end if
+                
+                if self.frog.rect.bottom >= self.rect.h:
+                    self.frog.rect.bottom = self.rect.h - 1
+                #end if
+                
+                #check for lives out
+                if self.header.numLives < 0:
+                    self.frog.spawn()
+                    self.frog.active = False
+                    self.frog.visible = False
+                #end if
+            #end if
             
-        #check for frogs cleared
-        if all([x == 0 for x in self.gayFrogs.states]):
-            self.gayFrogs.reset()
-            self.header.numScore += 1000
-            self.frog.spawn()
-        #end if
+            if self.frog2.active:
+                #check for collisions
+                #trucks
+                if self.trucks.collide(self.frog2.collisionRect):
+                    self.blood2.rect.center = self.frog2.rect.center
+                    self.blood2.visible = True
+                    self.bloodSport2.rect.center = self.frog2.rect.center
+                    self.bloodSport2.fire()
+                    self.frog2.spawn()
+                    self.header.numLives2 -= 1
+                #end if
+                
+                #purple cars
+                if self.purpleCars.collide(self.frog2.collisionRect):
+                    self.blood2.rect.center = self.frog2.rect.center
+                    self.blood2.visible = True
+                    self.bloodSport2.rect.center = self.frog2.rect.center
+                    self.bloodSport2.fire()
+                    self.frog2.spawn()
+                    self.header.numLives2 -= 1
+                #end if
+                
+                #red cars
+                if self.redCars.collide(self.frog2.collisionRect):
+                    self.blood2.rect.center = self.frog2.rect.center
+                    self.blood2.visible = True
+                    self.bloodSport2.rect.center = self.frog2.rect.center
+                    self.bloodSport2.fire()
+                    self.frog2.spawn()
+                    self.header.numLives2 -= 1
+                #end if
+                
+                #semis
+                if self.semis.collide(self.frog2.collisionRect):
+                    self.blood2.rect.center = self.frog2.rect.center
+                    self.blood2.visible = True
+                    self.bloodSport2.rect.center = self.frog2.rect.center
+                    self.bloodSport2.fire()
+                    self.frog2.spawn()
+                    self.bloodSport2.fire()
+                    self.header.numLives2 -= 1
+                #end if
+                
+                #gay frogs
+                if self.gayFrogs.collide(self.frog2.collisionRect):
+                    self.frog2.spawn()
+                    self.header.numScore2 += self.header.numSeconds
+                    self.header.numSeconds = 100
+                    
+                    #check for frogs cleared
+                    if all([x == 0 for x in self.gayFrogs.states]):
+                        self.gayFrogs.reset()
+                        self.header.numScore2 += 1000
+                        self.frog2.spawn()
+                    #end if
+                #end if
+                    
+                #gator heads and turtles
+                #river row 1
+                for i in range(self.riverRow1.numRiverRects):
+                    stateNum = self.riverRow1.riverEntities[i].stateNum
+                    entity = self.riverRow1.riverEntities[i].states[stateNum]
+                    
+                    if isinstance(entity, Gator):
+                        if self.frog2.collide(entity.head.rect):
+                            self.bloodSport2.rect.center = self.frog2.rect.center
+                            self.bloodSport2.fire()
+                            self.frog2.spawn()
+                            self.header.numLives2 -= 1
+                        #end if
+                    elif isinstance(entity, Turtle):
+                        if self.frog2.collide(entity.rect):
+                            if entity.stateNum in (4,9):
+                                self.bloodSport2.rect.center = self.frog2.rect.center
+                                self.bloodSport2.fire()
+                                self.frog2.spawn()
+                                self.header.numLives2 -= 1
+                            #end if
+                        #end if
+                    #end if
+                #end for
+                
+                #river row 2
+                for i in range(self.riverRow2.numRiverRects):
+                    stateNum = self.riverRow2.riverEntities[i].stateNum
+                    entity = self.riverRow2.riverEntities[i].states[stateNum]
+                    
+                    if isinstance(entity, Gator):
+                        if self.frog2.collide(entity.head.rect):
+                            self.bloodSport2.rect.center = self.frog2.rect.center
+                            self.bloodSport2.fire()
+                            self.frog2.spawn()
+                            self.header.numLives2 -= 1
+                        #end if
+                    elif isinstance(entity, Turtle):
+                        if self.frog2.collide(entity.rect):
+                            if entity.stateNum in (4,9):
+                                self.bloodSport2.rect.center = self.frog2.rect.center
+                                self.bloodSport2.fire()
+                                self.frog2.spawn()
+                                self.header.numLives2 -= 1
+                            #end if
+                        #end if
+                    #end if
+                #end for
+                
+                #river row 3
+                for i in range(self.riverRow3.numRiverRects):
+                    stateNum = self.riverRow3.riverEntities[i].stateNum
+                    entity = self.riverRow3.riverEntities[i].states[stateNum]
+                    
+                    if isinstance(entity, Gator):
+                        if self.frog2.collide(entity.head.rect):
+                            self.bloodSport2.rect.center = self.frog2.rect.center
+                            self.bloodSport2.fire()
+                            self.frog2.spawn()
+                            self.header.numLives2 -= 1
+                        #end if
+                    elif isinstance(entity, Turtle):
+                        if self.frog2.collide(entity.rect):
+                            if entity.stateNum in (4,9):
+                                self.bloodSport2.rect.center = self.frog2.rect.center
+                                self.bloodSport2.fire()
+                                self.frog2.spawn()
+                                self.header.numLives2 -= 1
+                            #end if
+                        #end if
+                    #end if
+                #end for
+                
+                #river row 4
+                for i in range(self.riverRow4.numRiverRects):
+                    stateNum = self.riverRow4.riverEntities[i].stateNum
+                    entity = self.riverRow4.riverEntities[i].states[stateNum]
+                    
+                    if isinstance(entity, Gator):
+                        if self.frog2.collide(entity.head.rect):
+                            self.bloodSport2.rect.center = self.frog2.rect.center
+                            self.bloodSport2.fire()
+                            self.frog2.spawn()
+                            self.header.numLives2 -= 1
+                        #end if
+                    elif isinstance(entity, Turtle):
+                        if self.frog2.collide(entity.rect):
+                            if entity.stateNum in (4,9):
+                                self.bloodSport2.rect.center = self.frog2.rect.center
+                                self.bloodSport2.fire()
+                                self.frog2.spawn()
+                                self.header.numLives2 -= 1
+                            #end if
+                        #end if
+                    #end if
+                #end for
+                                
+                #check for mounts
+                self.frog2.mount = None
+                
+                if self.riverRow4.collide(self.frog2.collisionRect):
+                    self.frog2.mount = self.riverRow4
+                #end if
+                    
+                if self.riverRow3.collide(self.frog2.collisionRect):
+                    self.frog2.mount = self.riverRow3
+                #end if
+                    
+                if self.riverRow2.collide(self.frog2.collisionRect):
+                    self.frog2.mount = self.riverRow2
+                #end if
+                    
+                if self.riverRow1.collide(self.frog2.collisionRect):
+                    self.frog2.mount = self.riverRow1
+                #end if
+                    
+                if self.frog2.mount == None:
+                    #snap frog center to tile grid
+                    tileX: int = int(self.frog2.rect.x / self.bg.rect.w)
+                    tileY: int = int(self.frog2.rect.y / self.bg.rect.w)
+                    self.frog2.rect.center = self.bg.tileGrid[tileY][tileX].center
+                    
+                    for y in range(3,7):
+                        for x in range(20):
+                            if self.bg.tileGrid[y][x].colliderect(self.frog2):
+                                self.bloodSport2.rect.center = self.frog2.rect.center
+                                self.bloodSport2.fire()
+                                self.frog2.spawn()
+                                self.header.numLives2 -= 1
+                            #end if
+                        #end for
+                    #end for
+                #end if
+                                
+                #align frogs
+                if self.frog2.rect.left < 0:
+                    self.frog2.rect.left = 0
+                #end if
+                
+                if self.frog2.rect.right >= self.rect.w:
+                    self.frog2.rect.right = self.rect.w - 1
+                #end if
+                
+                if self.frog2.rect.top < 0:
+                    self.frog2.rect.top = 0
+                #end if
+                
+                if self.frog2.rect.bottom >= self.rect.h:
+                    self.frog2.rect.bottom = self.rect.h - 1
+                #end if
+                
+                #check for lives out
+                if self.header.numLives2 < 0:
+                    self.frog2.spawn()
+                    self.frog2.active = False
+                    self.frog2.visible = False
+                #end if
+            #end if
+                    
+            #check for time out
+            if self.header.numSeconds < 0:
+                self.frog.spawn()
+                self.header.numLives -= 1
+                
+                self.frog2.spawn()
+                self.header.numLives2 -= 1
+            #end if
             
-        #check for end game
-        if self.header.numLives < 0:
-            self.exitCode = GAMESTATE_MENU
+            #check for end game
+            if self.header.numLives2 < 0 and self.header.numLives < 0:
+                self.exitCode = GAMESTATE_HIGH_SCORE
+            #end if
         #end if
         
         return
     #end update
 #end Play
+    
+class HighScoreState(GameState):
+    def __init__(self, scoreNames: list[str], scoreNums: list[int]) -> None:
+        super().__init__((400,300))
+        self.scoreNames: list[str] = scoreNames
+        self.numScores: int = len(self.scoreNames)
+        self.scoreNums: list[int] = scoreNums
+        
+        #get the text entities
+        self.font: pg.font.Font = pg.font.Font(size=20)
+        
+        self.highScore: Entity = Entity()
+        self.highScore.img = self.font.render("HIGH SCORE", False, (255,255,255))
+        self.highScore.rect = self.highScore.img.get_rect()
+        self.highScore.rect.midtop = self.rect.midtop
+        
+        self.ranks: list[Entity] = [Entity() for x in range(self.numScores )]
+        self.ranks[0].img = self.font.render("1. ", False, (255,255,255))
+        self.ranks[0].rect = self.ranks[0].img.get_rect()
+        self.ranks[0].rect.left = 5
+        self.ranks[0].rect.top = self.highScore.rect.bottom + 10 + self.ranks[0].rect.h
+        
+        for i in range(1, self.numScores):
+            self.ranks[i].img = self.font.render(str(i + 1) + '. ', False, (255,255,255))
+            self.ranks[i].rect = self.ranks[i].img.get_rect()
+            self.ranks[i].rect.left = 5
+            self.ranks[i].rect.top = self.ranks[i-1].rect.bottom + 5
+        #end for
+        
+        self.names: list[Entity] = [Entity() for x in range(self.numScores + 1)]
+        self.names[0].img = self.font.render("NAMES:", False, (255,255,255))
+        self.names[0].rect = self.names[0].img.get_rect()
+        self.names[0].rect.left = self.ranks[0].rect.right + 5
+        self.names[0].rect.top = self.highScore.rect.bottom + 5
+        
+        for i in range(1, self.numScores + 1):
+            self.names[i].img = self.font.render(self.scoreNames[i-1], False, (255,255,255))
+            self.names[i].rect = self.names[i].img.get_rect()
+            self.names[i].rect.left = self.ranks[0].rect.right + 5
+            self.names[i].rect.top = self.names[i-1].rect.bottom + 5
+        #end for
+            
+        self.scores: list[Entity] = [Entity() for x in range(self.numScores + 1)]
+        self.scores[0].img = self.font.render("SCORES:", False, (255,255,255))
+        self.scores[0].rect = self.names[0].img.get_rect()
+        self.scores[0].rect.left = self.names[0].rect.right + 50
+        self.scores[0].rect.top = self.highScore.rect.bottom + 5
+        
+        for i in range(1, self.numScores + 1):
+            self.scores[i].img = self.font.render(str(self.scoreNums[i-1]), False, (255,255,255))
+            self.scores[i].rect = self.scores[i].img.get_rect()
+            self.scores[i].rect.right = self.scores[i - 1].rect.right
+            self.scores[i].rect.top = self.scores[i-1].rect.bottom + 5
+        #end for
+        
+        self.entities.append(self.highScore)
+        self.entities.extend(self.ranks)
+        self.entities.extend(self.names)
+        self.entities.extend(self.scores)
+        
+        return
+    #end __init__
+#end HighScoreState
 
 class Frogger(Game):
     def __init__(self) -> None:
         super().__init__("Frogger",[800,600])
         
+        self.scoreNames: list[str] = list()
+        self.scoreNums: list[str] = list()
+        
+        with open('data/FroggerHighScore.txt','r') as scoreFile:
+            for row in scoreFile:
+                row = row.split()
+                self.scoreNames.append(row[0])
+                self.scoreNums.append(row[1])
+            #end for
+        #end with
+        
         self.menuState: GameState = Menu()
         self.playState: GameState = Play()
+        self.highScoreState: GameState = HighScoreState(self.scoreNames, self.scoreNums)
         
         self.switchState(self.menuState)
         
@@ -1291,11 +1940,23 @@ class Frogger(Game):
         super().update(deltaTime)
         
         if self.state.exitCode == GAMESTATE_PLAY_1P:
+            self.playState.numPlayers = 1
+            self.playState.reset()
+            self.switchState(self.playState)
+        elif self.state.exitCode == GAMESTATE_PLAY_2P:
+            self.playState.numPlayers = 2
             self.playState.reset()
             self.switchState(self.playState)
         elif self.state.exitCode == GAMESTATE_MENU:
             self.menuState.reset()
             self.switchState(self.menuState)
+        elif self.state.exitCode == GAMESTATE_HIGH_SCORE:
+            if isinstance(self.state, Play):
+                print("%d %d" % (self.state.header.numScore, self.state.header.numScore2))
+            #end if
+            self.switchState(self.highScoreState)
+            self.state.scoreNames = self.scoreNames
+            self.state.scoreNums = self.scoreNums
         #end if
         
         return
