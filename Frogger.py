@@ -606,27 +606,27 @@ class Header(Entity):
         
         self.lives: Entity = Entity()
         self.numLives: int = 5
-        self.lives.img = self.font.render("LIVES: %d" % self.numLives, False, (255,255,255))
+        self.lives.img = self.font.render("LIVES: %d" % self.numLives, False, (0,255,0))
         self.lives.rect = self.lives.img.get_rect()
         self.lives.rect.topleft = (0,0)
         
         self.score: Entity = Entity()
         self.numScore: int = 0
-        self.score.img = self.font.render("SCORE: %s" % format(self.numScore,'0=4d'), False, (255,255,255))
+        self.score.img = self.font.render("SCORE: %s" % format(self.numScore,'0=4d'), False, (0,255,0))
         self.score.rect = self.score.img.get_rect()
         self.score.rect.topleft = self.lives.rect.topright
         self.score.rect.left += 6
         
         self.lives2: Entity = Entity()
         self.numLives2: int = 5
-        self.lives2.img = self.font.render("LIVES 2: %d" % self.numLives2, False, (255,255,255))
+        self.lives2.img = self.font.render("LIVES 2: %d" % self.numLives2, False, (0,0,255))
         self.lives2.rect = self.lives2.img.get_rect()
         self.lives2.rect.topleft = self.score.rect.topright
         self.lives2.rect.left += 10
         
         self.score2: Entity = Entity()
         self.numScore2: int = 0
-        self.score2.img = self.font.render("SCORE 2: %s" % format(self.numScore2,'0=4d'), False, (255,255,255))
+        self.score2.img = self.font.render("SCORE 2: %s" % format(self.numScore2,'0=4d'), False, (0,0,255))
         self.score2.rect = self.score2.img.get_rect()
         self.score2.rect.topleft = self.lives2.rect.topright
         self.score2.rect.left += 6
@@ -673,11 +673,11 @@ class Header(Entity):
             self.time.img = self.font.render("TIME: %s" % format(self.numSeconds,'0=3d'), False, (255,255,255))
         #end if
             
-        self.score.img = self.font.render("SCORE: %s" % format(self.numScore,'0=4d'), False, (255,255,255))
-        self.lives.img = self.font.render("LIVES: %d" % self.numLives, False, (255,255,255))
+        self.score.img = self.font.render("SCORE: %s" % format(self.numScore,'0=4d'), False, (0,255,0))
+        self.lives.img = self.font.render("LIVES: %d" % self.numLives, False, (0,255,0))
         
-        self.score2.img = self.font.render("SCORE 2: %s" % format(self.numScore2,'0=4d'), False, (255,255,255))
-        self.lives2.img = self.font.render("LIVES 2: %d" % self.numLives2, False, (255,255,255))
+        self.score2.img = self.font.render("SCORE 2: %s" % format(self.numScore2,'0=4d'), False, (0,0,255))
+        self.lives2.img = self.font.render("LIVES 2: %d" % self.numLives2, False, (0,0,255))
         
         return
     #end update
@@ -1902,14 +1902,54 @@ class HighScoreState(GameState):
             self.scores[i].rect.right = self.scores[i - 1].rect.right
             self.scores[i].rect.top = self.scores[i-1].rect.bottom + 5
         #end for
+            
+        self.player1Score: int = 0
+        self.playerScore:  Entity = Entity()
+        self.playerScore.img = self.font.render("PLAYER SCORE: %d" % self.player1Score, False, (255,255,255))
+        self.playerScore.rect = self.playerScore.img.get_rect()
+        self.playerScore.rect.left = 0
+        self.playerScore.rect.top = self.scores[-1].rect.bottom + 25
+        
+        self.playerInitials:  Entity = Entity()
+        self.playerInitials.img = self.font.render("PLAYER INITIALS: ", False, (255,255,255))
+        self.playerInitials.rect = self.playerInitials.img.get_rect()
+        self.playerInitials.rect.left = 0
+        self.playerInitials.rect.top = self.playerScore.rect.bottom + 5
+        
+        self.inputInitials: list[Entity] = [Entity() for i in range(3)]
+        self.inputInitials[0].img = self.font.render("?", False, (255,255,255))
+        self.inputInitials[0].rect = self.inputInitials[0].img.get_rect()
+        self.inputInitials[0].rect.left = self.playerInitials.rect.right + 5
+        self.inputInitials[0].rect.top = self.playerInitials.rect.top
+        
+        self.inputInitials[1].img = self.font.render("?", False, (255,255,255))
+        self.inputInitials[1].rect = self.inputInitials[1].img.get_rect()
+        self.inputInitials[1].rect.left = self.inputInitials[0].rect.right
+        self.inputInitials[1].rect.top = self.playerInitials.rect.top
+        
+        self.inputInitials[2].img = self.font.render("?", False, (255,255,255))
+        self.inputInitials[2].rect = self.inputInitials[1].img.get_rect()
+        self.inputInitials[2].rect.left = self.inputInitials[1].rect.right
+        self.inputInitials[2].rect.top = self.playerInitials.rect.top
         
         self.entities.append(self.highScore)
         self.entities.extend(self.ranks)
         self.entities.extend(self.names)
         self.entities.extend(self.scores)
+        self.entities.append(self.playerScore)
+        self.entities.append(self.playerInitials)
+        self.entities.extend(self.inputInitials)
         
         return
     #end __init__
+    
+    def update(self, deltaTime: float) -> None:
+        super().update(deltaTime)
+        
+        
+        
+        return
+    #end update
 #end HighScoreState
 
 class Frogger(Game):
@@ -1931,7 +1971,7 @@ class Frogger(Game):
         self.playState: GameState = Play()
         self.highScoreState: GameState = HighScoreState(self.scoreNames, self.scoreNums)
         
-        self.switchState(self.menuState)
+        self.switchState(self.highScoreState)
         
         return
     #end __init__
@@ -1951,12 +1991,18 @@ class Frogger(Game):
             self.menuState.reset()
             self.switchState(self.menuState)
         elif self.state.exitCode == GAMESTATE_HIGH_SCORE:
+            p1Score: int = 0
+            p2Score: int = 0
+            
             if isinstance(self.state, Play):
-                print("%d %d" % (self.state.header.numScore, self.state.header.numScore2))
+                p1Score = self.state.header.numScore
+                p2Score = self.state.header.numScore2
             #end if
+                
             self.switchState(self.highScoreState)
             self.state.scoreNames = self.scoreNames
             self.state.scoreNums = self.scoreNums
+            self.state.player1Score = p1Score
         #end if
         
         return
