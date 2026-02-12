@@ -43,7 +43,8 @@ class Frog(Entity):
     #end update
     
     def render(self, renderBuffer:pg.surface.Surface) -> None:
-        renderBuffer.blit(self.states[self.state],self.rect)
+        if self.visible:
+            renderBuffer.blit(self.states[self.state],self.rect)
 #         pg.draw.rect(renderBuffer,(255,255,255),self.collisionRect, 1)
         
         return
@@ -849,6 +850,8 @@ class Menu(GameState):
         super().__init__([400,300])
         self.tileBG: TileBG = TileBG()
         
+        self.locked: bool = True
+        
         self.tileBG.tileMap = [
             [2,4,2,2,2,2,2,2,2,4,2,2,2,2,2,2,2,2,4,2]
             ,[7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7]
@@ -915,41 +918,62 @@ class Menu(GameState):
         return
     #end reset
     
+    def onStateEnter(self) -> None:
+        super().onStateEnter()
+        
+        self.selectorRectNum: int = 0
+        self.selector.rect.center = self.player1.rect.center
+        self.exitCode = -1
+        self.locked = True
+        
+        return
+    #endonStateEnter
+    
     def update(self, deltaTime:float) -> None:
         super().update(deltaTime)
-        self.selector.rect = self.selectorRects[self.selectorRectNum] 
+        self.selector.rect = self.selectorRects[self.selectorRectNum]
         
         return
     #end update
     
     def onKeyPressed(self, key: int) -> None:
-        if key == pg.K_DOWN:
-            self.selectorRectNum = (self.selectorRectNum + 1) % 3
-            self.selector.rect = self.selectorRects[self.selectorRectNum]
-        elif key == pg.K_UP:
-            self.selectorRectNum -= 1
-            
-            if self.selectorRectNum < 0:
-                self.selectorRectNum = 2
-            #end if
+        if not self.locked:
+            if key == pg.K_DOWN:
+                self.selectorRectNum = (self.selectorRectNum + 1) % 3
+                self.selector.rect = self.selectorRects[self.selectorRectNum]
+            elif key == pg.K_UP:
+                self.selectorRectNum -= 1
                 
-            self.selector.rect = self.selectorRects[self.selectorRectNum]
-        #end if        
+                if self.selectorRectNum < 0:
+                    self.selectorRectNum = 2
+                #end if
+                    
+                self.selector.rect = self.selectorRects[self.selectorRectNum]
+            #end if        
         
         return
     #end onKeyPressed
     
     def onKeyReleased(self, key: int) -> None:
-        if key == pg.K_SPACE or key == pg.K_RETURN:
-            if self.selector.collide(self.player1):
-                self.exitCode = GAMESTATE_PLAY_1P
-            elif self.selector.collide(self.player2):
-                self.exitCode = GAMESTATE_PLAY_2P
+        if not self.locked:
+            if key == pg.K_SPACE or key == pg.K_RETURN:
+                if self.selector.collide(self.player1):
+                    self.exitCode = GAMESTATE_PLAY_1P
+                elif self.selector.collide(self.player2):
+                    self.exitCode = GAMESTATE_PLAY_2P
+                #end if
             #end if
-        #end if
         
         return
     #end onKeyReleased
+    
+    def onKeysDown(self, keys: list[bool]) -> None:
+        if not any([x for x in keys]):
+            self.locked = False
+        #end if
+        
+        return
+    #end onKeysDown
 #end Menu
 
 class Play(GameState):
@@ -1177,6 +1201,9 @@ class Play(GameState):
         
         #handle 1p and 2p
         if self.numPlayers == 1:
+            self.frog2.active = False
+            self.frog2.visible = False
+            
             #handle Frog 1
             if self.frog.active:
                 #check for collisions
@@ -1612,6 +1639,8 @@ class Play(GameState):
                     self.frog.active = False
                     self.frog.visible = False
                 #end if
+            else:
+                self.frog.visible = False
             #end if
             
             if self.frog2.active:
@@ -1843,10 +1872,24 @@ class Play(GameState):
             if self.header.numLives2 < 0 and self.header.numLives < 0:
                 self.exitCode = GAMESTATE_HIGH_SCORE
             #end if
+        else:
+            self.frog2.visible = False
         #end if
         
         return
     #end update
+    
+    def onStateEnter(self) -> None:
+        super().onStateEnter()
+        self.frog.active = True
+        self.frog.visible = True
+        self.frog2.avtive = True
+        self.frog2.visible = True
+        
+        self.exitCode = -1
+        
+        return
+    #endonStateEnter
 #end Play
     
 class HighScoreState(GameState):
@@ -1902,32 +1945,38 @@ class HighScoreState(GameState):
             self.scores[i].rect.right = self.scores[i - 1].rect.right
             self.scores[i].rect.top = self.scores[i-1].rect.bottom + 5
         #end for
-            
+        
+        self.playerIndex: int = 1
         self.player1Score: int = 0
         self.playerScore:  Entity = Entity()
-        self.playerScore.img = self.font.render("PLAYER SCORE: %d" % self.player1Score, False, (255,255,255))
+        self.playerScore.img = self.font.render("PLAYER %d SCORE: %d" % (self.playerIndex, self.player1Score), False, (255,255,255))
         self.playerScore.rect = self.playerScore.img.get_rect()
         self.playerScore.rect.left = 0
         self.playerScore.rect.top = self.scores[-1].rect.bottom + 25
         
         self.playerInitials:  Entity = Entity()
-        self.playerInitials.img = self.font.render("PLAYER INITIALS: ", False, (255,255,255))
+        self.playerInitials.img = self.font.render("PLAYER %d INITIALS: " % self.playerIndex, False, (255,255,255))
         self.playerInitials.rect = self.playerInitials.img.get_rect()
         self.playerInitials.rect.left = 0
         self.playerInitials.rect.top = self.playerScore.rect.bottom + 5
         
+        self.inputInitialIndex: int = 0
+        self.inputInitialBlinkTimer:int = 300
+        self.inputInitialBlinkDuration: int = 150
+        self.inputInitialBlinkTimeDelta: float = 0
+        self.inputInitialList: list[int] = [ord('A'),ord('A'),ord('A')]
         self.inputInitials: list[Entity] = [Entity() for i in range(3)]
-        self.inputInitials[0].img = self.font.render("?", False, (255,255,255))
+        self.inputInitials[0].img = self.font.render("%s" % chr(self.inputInitialList[0]), False, (255,255,255))
         self.inputInitials[0].rect = self.inputInitials[0].img.get_rect()
         self.inputInitials[0].rect.left = self.playerInitials.rect.right + 5
         self.inputInitials[0].rect.top = self.playerInitials.rect.top
         
-        self.inputInitials[1].img = self.font.render("?", False, (255,255,255))
+        self.inputInitials[1].img = self.font.render("%s" % chr(self.inputInitialList[1]), False, (255,255,255))
         self.inputInitials[1].rect = self.inputInitials[1].img.get_rect()
         self.inputInitials[1].rect.left = self.inputInitials[0].rect.right
         self.inputInitials[1].rect.top = self.playerInitials.rect.top
         
-        self.inputInitials[2].img = self.font.render("?", False, (255,255,255))
+        self.inputInitials[2].img = self.font.render("%s" % chr(self.inputInitialList[2]), False, (255,255,255))
         self.inputInitials[2].rect = self.inputInitials[1].img.get_rect()
         self.inputInitials[2].rect.left = self.inputInitials[1].rect.right
         self.inputInitials[2].rect.top = self.playerInitials.rect.top
@@ -1944,12 +1993,88 @@ class HighScoreState(GameState):
     #end __init__
     
     def update(self, deltaTime: float) -> None:
+        self.inputInitials[0].img = self.font.render("%s" % chr(self.inputInitialList[0]), False, (255,255,255))
+        self.inputInitials[1].img = self.font.render("%s" % chr(self.inputInitialList[1]), False, (255,255,255))
+        self.inputInitials[2].img = self.font.render("%s" % chr(self.inputInitialList[2]), False, (255,255,255))
+        self.playerScore.img = self.font.render("PLAYER %d SCORE: %d" % (self.playerIndex, self.player1Score), False, (255,255,255))
+        self.playerInitials.img = self.font.render("PLAYER %d INITIALS: " % self.playerIndex, False, (255,255,255))
+        
+        self.inputInitialBlinkTimeDelta += deltaTime
+        
+        if self.inputInitials[self.inputInitialIndex].visible == True:            
+            if self.inputInitialBlinkTimeDelta >= self.inputInitialBlinkTimer:
+                self.inputInitialBlinkTimeDelta = 0
+                self.inputInitials[self.inputInitialIndex].visible = False
+            #end if
+        else:
+            if self.inputInitialBlinkTimeDelta >= self.inputInitialBlinkDuration:
+                self.inputInitialBlinkTimeDelta = 0
+                self.inputInitials[self.inputInitialIndex].visible = True
+            #end if
+        #end if
+                
         super().update(deltaTime)
-        
-        
         
         return
     #end update
+    
+    def onStateEnter(self) ->None:
+        super().onStateEnter()
+        
+        self.playerIndex: int = 1
+        self.player1Score: int = 0
+        self.inputInitialIndex: int = 0
+        self.inputInitialBlinkTimeDelta: float = 0
+        self.exitCode = -1
+        
+        return
+    #end onStateEnter
+    
+    def onKeyPressed(self, key: int) -> None:
+        if key == pg.K_UP:
+            self.inputInitialList[self.inputInitialIndex] += 1
+            
+            if self.inputInitialList[self.inputInitialIndex] > ord('Z'):
+                self.inputInitialList[self.inputInitialIndex] = ord(' ')
+            #end if
+        #end if
+            
+        if key == pg.K_DOWN:
+            self.inputInitialList[self.inputInitialIndex] -= 1
+            
+            if self.inputInitialList[self.inputInitialIndex] < ord(' '):
+                self.inputInitialList[self.inputInitialIndex] = ord('Z')
+            #end if
+        #end if
+                
+        if key == pg.K_LEFT:
+            self.inputInitials[self.inputInitialIndex].visible = True
+            self.inputInitialIndex -= 1
+            
+            if self.inputInitialIndex < 0:
+                self.inputInitialIndex = 2
+            #end if
+        #end if
+                
+        if key == pg.K_RIGHT:
+            self.inputInitials[self.inputInitialIndex].visible = True
+            self.inputInitialIndex += 1
+            
+            if self.inputInitialIndex > 2:
+                self.inputInitialIndex = 0
+            #end if
+        #end if
+                
+        if key == pg.K_RETURN:
+            self.playerIndex += 1
+            
+            if self.playerIndex > 2:
+                self.exitCode = GAMESTATE_MENU
+            #end if
+        #end if
+        
+        return
+    #end onKeyPressed
 #end HighScoreState
 
 class Frogger(Game):
@@ -1983,6 +2108,8 @@ class Frogger(Game):
             self.playState.numPlayers = 1
             self.playState.reset()
             self.switchState(self.playState)
+            self.playState.frog2.visible = False
+            self.playState.frog2.active = False
         elif self.state.exitCode == GAMESTATE_PLAY_2P:
             self.playState.numPlayers = 2
             self.playState.reset()

@@ -25,14 +25,16 @@ class Entity:
     #end __init__
     
     def render(self, renderBuffer: pg.surface.Surface) -> None:
-        renderBuffer.blit(self.img, self.rect)
+        if self.visible:
+            renderBuffer.blit(self.img, self.rect)
         
         return
     #end render
     
     def update(self, deltaTime: float) -> None:
-        self.velocity += self.accel
-        self.rect.center += self.velocity
+        if self.active:
+            self.velocity += self.accel
+            self.rect.center += self.velocity
         
         return
     #end update
@@ -65,26 +67,26 @@ class GameState(Entity):
         self.img.fill((0,0,0))
         
         #render each entity
-        for entity in self.entities:
-            if isinstance(entity, Entity):
-                if entity.visible:
+        if self.visible:
+            for entity in self.entities:
+                if isinstance(entity, Entity):
                     entity.render(self.img)
                 #end if
-            #end if
-        #end for
+            #end for
+        #end if
         
         return
     #end render
     
     def update(self, deltaTime: float) -> None:
         #update each entity
-        for entity in self.entities:
-            if isinstance(entity, Entity):
-                if entity.active:
+        if self.active:
+            for entity in self.entities:
+                if isinstance(entity, Entity):
                     entity.update(deltaTime)
                 #end if
-            #end if
-        #end for
+            #end for
+        #end if
         
         return
     #end update
