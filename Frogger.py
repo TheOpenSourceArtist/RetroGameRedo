@@ -921,10 +921,12 @@ class Menu(GameState):
     def onStateEnter(self) -> None:
         super().onStateEnter()
         
-        self.selectorRectNum: int = 0
-        self.selector.rect.center = self.player1.rect.center
         self.exitCode = -1
         self.locked = True
+
+        self.player1.rect = self.selectorRects[0]
+        self.player2.rect = self.selectorRects[1]
+        self.highScore.rect = self.selectorRects[2]
         
         return
     #endonStateEnter
@@ -961,6 +963,8 @@ class Menu(GameState):
                     self.exitCode = GAMESTATE_PLAY_1P
                 elif self.selector.collide(self.player2):
                     self.exitCode = GAMESTATE_PLAY_2P
+                elif self.selector.collide(self.highScore):
+                    self.exitCode = GAMESTATE_HIGH_SCORE
                 #end if
             #end if
         
