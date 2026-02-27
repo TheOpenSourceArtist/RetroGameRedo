@@ -1899,9 +1899,130 @@ class Play(GameState):
 class HighScoreState(GameState):
     def __init__(self) ->None:
         super().__init__((400,300))
+        self.highScoreNames: list[str] = list()
+        self.highScoreNums: list[int] = list()
+
+        with open('data/FroggerHighScore.txt','r') as highScores:
+            for line in highScores:
+                line = line.split(' ')
+                self.highScoreNames.append(line[0])
+                self.highScoreNums.append(int(line[1]))
+            #end for
+        #end with
+
+        #set up a font for rendering text
+        self.font = pg.font.Font(size=20)
+
+        self.lblHighScores: Entity = Entity()
+        self.lblHighScores.img = self.font.render("HIGH SCORES:", False, (255,255,255))
+        self.lblHighScores.rect = self.lblHighScores.img.get_rect()
+        self.lblHighScores.rect.topleft = (0,0)
+
+        self.numHighScores: int = 10
+        self.lblHighScoreRanks: list[Entity] = [Entity() for x in range(self.numHighScores)]
+        
+        self.lblHighScoreNames: list[Entity] = [Entity() for x in range(self.numHighScores)]
+
+        self.lblHighScoreNums: list[Entity] = [Entity() for x in range(self.numHighScores)]
+
+        for i in range(self.numHighScores):
+            self.lblHighScoreRanks[i].img = self.font.render("%d. " % (i + 1), False, (255,255,255))
+            self.lblHighScoreRanks[i].rect = self.lblHighScoreRanks[i].img.get_rect().move(20,20 * (i + 1))
+            
+            self.lblHighScoreNames[i].img = self.font.render("%s" % (self.highScoreNames[i]), False, (255,255,255))
+            self.lblHighScoreNames[i].rect = self.lblHighScoreNames[i].img.get_rect().move(40,20 * (i + 1))
+
+            self.lblHighScoreNums[i].img = self.font.render("%s" % (format(self.highScoreNums[i],'0=4d')), False, (255,255,255))
+            self.lblHighScoreNums[i].rect = self.lblHighScoreNums[i].img.get_rect().move(100,20 * (i + 1))
+        #end for
+
+        self.playerScoreNames: list[str] = ['AAA','AAA']
+        self.playerScoreNums: list[int] = [0,0]
+        self.numPlayerScores: int = 0
+        self.playerIndex: int = 1
+
+        self.lblPlayerScoreNum: Entity = Entity()
+        self.lblPlayerScoreNum.img = self.font.render(
+            "Player %d Score: %s" % (self.playerIndex + 1, format(self.playerScoreNums[self.playerIndex],'0=4d'))
+            ,False,(255,255,255)
+        )
+        self.lblPlayerScoreNum.rect = self.lblPlayerScoreNum.img.get_rect().move(0,225)
+
+        self.lblPlayerScoreName: Entity = Entity()
+        self.lblPlayerScoreName.img = self.font.render(
+            "Player %d Initials: " % (self.playerIndex + 1), False, (255,255,255)
+        )
+        self.lblPlayerScoreName.rect = self.lblPlayerScoreName.img.get_rect().move(0,250)
+
+        self.playerInitialIndex: int = 0
+        self.playerInitials: list[int] = [ord('A'),ord('A'),ord('A')]
+        self.lblPlayerInitials: list[Entity] = [Entity() for x in range(3)]
+
+        for x in range(3):
+            self.lblPlayerInitials[x].img = self.font.render(
+                "%s" % (chr(self.playerInitials[x])),False,(255,255,255)
+            )
+            self.lblPlayerInitials[x].rect = self.lblPlayerInitials[x].img.get_rect().move(115 + (x * 13),250)
+        #end for
+            
+        self.entities.append(self.lblHighScores)
+        self.entities.extend(self.lblHighScoreRanks)
+        self.entities.extend(self.lblHighScoreNames)
+        self.entities.extend(self.lblHighScoreNums)
+        self.entities.append(self.lblPlayerScoreNum)
+        self.entities.append(self.lblPlayerScoreName)
+        self.entities.extend(self.lblPlayerInitials)
         
         return
     #end __init__
+
+    def update(self, deltaTime: float) -> None:
+        #update Player Score Labels
+        self.lblPlayerScoreNum.img = self.font.render(
+            "Player %d Score: %s" % (self.playerIndex + 1, format(self.playerScoreNums[self.playerIndex],'0=4d'))
+            ,False,(255,255,255)
+        )
+
+        #update Player Initial Inputs
+        for x in range(3):
+            self.lblPlayerInitials[x].img = self.font.render(
+                "%s" % (chr(self.playerInitials[x])),False,(255,255,255)
+            )
+            self.lblPlayerInitials[x].rect = self.lblPlayerInitials[x].img.get_rect().move(115 + (x * 13),250)
+        #end for
+
+        super().update(deltaTime)
+
+        return
+    #end update
+
+    def onKeyPressed(self, key: int) -> None:
+        if key == pg.K_UP:
+            self.playerInitials[self.playerInitialIndex] += 1
+        #end if
+
+        if key == pg.K_DOWN:
+            self.playerInitials[self.playerInitialIndex] -= 1
+        #end if
+
+        if key == pg.K_LEFT:
+            self.playerInitialIndex -= 1
+
+            if self.playerInitialIndex < 0:
+                self.playerInitialIndex = 2
+            #end if
+        #end if
+
+        if key == pg.K_RIGHT:
+            self.playerInitialIndex += 1
+
+            if self.playerInitialIndex > 2:
+                self.playerInitialIndex = 0
+            #end if
+        #end if
+
+        return
+    #end onKeyPressed
 #end HighScoreState
 
 class Frogger(Game):
@@ -1935,6 +2056,7 @@ class Frogger(Game):
             self.switchState(self.menuState)
         elif self.state.exitCode == GAMESTATE_HIGH_SCORE:
             self.switchState(self.highScoreState)
+            self.state.playerScoreNums = [57,23]
         #end if
         
         return
