@@ -1897,210 +1897,22 @@ class Play(GameState):
 #end Play
     
 class HighScoreState(GameState):
-    def __init__(self, scoreNames: list[str], scoreNums: list[int]) -> None:
+    def __init__(self) ->None:
         super().__init__((400,300))
-        self.scoreNames: list[str] = scoreNames
-        self.numScores: int = len(self.scoreNames)
-        self.scoreNums: list[int] = scoreNums
-        
-        #get the text entities
-        self.font: pg.font.Font = pg.font.Font(size=20)
-        
-        self.highScore: Entity = Entity()
-        self.highScore.img = self.font.render("HIGH SCORE", False, (255,255,255))
-        self.highScore.rect = self.highScore.img.get_rect()
-        self.highScore.rect.midtop = self.rect.midtop
-        
-        self.ranks: list[Entity] = [Entity() for x in range(self.numScores )]
-        self.ranks[0].img = self.font.render("1. ", False, (255,255,255))
-        self.ranks[0].rect = self.ranks[0].img.get_rect()
-        self.ranks[0].rect.left = 5
-        self.ranks[0].rect.top = self.highScore.rect.bottom + 10 + self.ranks[0].rect.h
-        
-        for i in range(1, self.numScores):
-            self.ranks[i].img = self.font.render(str(i + 1) + '. ', False, (255,255,255))
-            self.ranks[i].rect = self.ranks[i].img.get_rect()
-            self.ranks[i].rect.left = 5
-            self.ranks[i].rect.top = self.ranks[i-1].rect.bottom + 5
-        #end for
-        
-        self.names: list[Entity] = [Entity() for x in range(self.numScores + 1)]
-        self.names[0].img = self.font.render("NAMES:", False, (255,255,255))
-        self.names[0].rect = self.names[0].img.get_rect()
-        self.names[0].rect.left = self.ranks[0].rect.right + 5
-        self.names[0].rect.top = self.highScore.rect.bottom + 5
-        
-        for i in range(1, self.numScores + 1):
-            self.names[i].img = self.font.render(self.scoreNames[i-1], False, (255,255,255))
-            self.names[i].rect = self.names[i].img.get_rect()
-            self.names[i].rect.left = self.ranks[0].rect.right + 5
-            self.names[i].rect.top = self.names[i-1].rect.bottom + 5
-        #end for
-            
-        self.scores: list[Entity] = [Entity() for x in range(self.numScores + 1)]
-        self.scores[0].img = self.font.render("SCORES:", False, (255,255,255))
-        self.scores[0].rect = self.names[0].img.get_rect()
-        self.scores[0].rect.left = self.names[0].rect.right + 50
-        self.scores[0].rect.top = self.highScore.rect.bottom + 5
-        
-        for i in range(1, self.numScores + 1):
-            self.scores[i].img = self.font.render(str(self.scoreNums[i-1]), False, (255,255,255))
-            self.scores[i].rect = self.scores[i].img.get_rect()
-            self.scores[i].rect.right = self.scores[i - 1].rect.right
-            self.scores[i].rect.top = self.scores[i-1].rect.bottom + 5
-        #end for
-        
-        self.playerIndex: int = 1
-        self.player1Score: int = 0
-        self.playerScore:  Entity = Entity()
-        self.playerScore.img = self.font.render("PLAYER %d SCORE: %d" % (self.playerIndex, self.player1Score), False, (255,255,255))
-        self.playerScore.rect = self.playerScore.img.get_rect()
-        self.playerScore.rect.left = 0
-        self.playerScore.rect.top = self.scores[-1].rect.bottom + 25
-        
-        self.playerInitials:  Entity = Entity()
-        self.playerInitials.img = self.font.render("PLAYER %d INITIALS: " % self.playerIndex, False, (255,255,255))
-        self.playerInitials.rect = self.playerInitials.img.get_rect()
-        self.playerInitials.rect.left = 0
-        self.playerInitials.rect.top = self.playerScore.rect.bottom + 5
-        
-        self.inputInitialIndex: int = 0
-        self.inputInitialBlinkTimer:int = 300
-        self.inputInitialBlinkDuration: int = 150
-        self.inputInitialBlinkTimeDelta: float = 0
-        self.inputInitialList: list[int] = [ord('A'),ord('A'),ord('A')]
-        self.inputInitials: list[Entity] = [Entity() for i in range(3)]
-        self.inputInitials[0].img = self.font.render("%s" % chr(self.inputInitialList[0]), False, (255,255,255))
-        self.inputInitials[0].rect = self.inputInitials[0].img.get_rect()
-        self.inputInitials[0].rect.left = self.playerInitials.rect.right + 5
-        self.inputInitials[0].rect.top = self.playerInitials.rect.top
-        
-        self.inputInitials[1].img = self.font.render("%s" % chr(self.inputInitialList[1]), False, (255,255,255))
-        self.inputInitials[1].rect = self.inputInitials[1].img.get_rect()
-        self.inputInitials[1].rect.left = self.inputInitials[0].rect.right
-        self.inputInitials[1].rect.top = self.playerInitials.rect.top
-        
-        self.inputInitials[2].img = self.font.render("%s" % chr(self.inputInitialList[2]), False, (255,255,255))
-        self.inputInitials[2].rect = self.inputInitials[1].img.get_rect()
-        self.inputInitials[2].rect.left = self.inputInitials[1].rect.right
-        self.inputInitials[2].rect.top = self.playerInitials.rect.top
-        
-        self.entities.append(self.highScore)
-        self.entities.extend(self.ranks)
-        self.entities.extend(self.names)
-        self.entities.extend(self.scores)
-        self.entities.append(self.playerScore)
-        self.entities.append(self.playerInitials)
-        self.entities.extend(self.inputInitials)
         
         return
     #end __init__
-    
-    def update(self, deltaTime: float) -> None:
-        self.inputInitials[0].img = self.font.render("%s" % chr(self.inputInitialList[0]), False, (255,255,255))
-        self.inputInitials[1].img = self.font.render("%s" % chr(self.inputInitialList[1]), False, (255,255,255))
-        self.inputInitials[2].img = self.font.render("%s" % chr(self.inputInitialList[2]), False, (255,255,255))
-        self.playerScore.img = self.font.render("PLAYER %d SCORE: %d" % (self.playerIndex, self.player1Score), False, (255,255,255))
-        self.playerInitials.img = self.font.render("PLAYER %d INITIALS: " % self.playerIndex, False, (255,255,255))
-        
-        self.inputInitialBlinkTimeDelta += deltaTime
-        
-        if self.inputInitials[self.inputInitialIndex].visible == True:            
-            if self.inputInitialBlinkTimeDelta >= self.inputInitialBlinkTimer:
-                self.inputInitialBlinkTimeDelta = 0
-                self.inputInitials[self.inputInitialIndex].visible = False
-            #end if
-        else:
-            if self.inputInitialBlinkTimeDelta >= self.inputInitialBlinkDuration:
-                self.inputInitialBlinkTimeDelta = 0
-                self.inputInitials[self.inputInitialIndex].visible = True
-            #end if
-        #end if
-                
-        super().update(deltaTime)
-        
-        return
-    #end update
-    
-    def onStateEnter(self) ->None:
-        super().onStateEnter()
-        
-        self.playerIndex: int = 1
-        self.player1Score: int = 0
-        self.inputInitialIndex: int = 0
-        self.inputInitialBlinkTimeDelta: float = 0
-        self.exitCode = -1
-        
-        return
-    #end onStateEnter
-    
-    def onKeyPressed(self, key: int) -> None:
-        if key == pg.K_UP:
-            self.inputInitialList[self.inputInitialIndex] += 1
-            
-            if self.inputInitialList[self.inputInitialIndex] > ord('Z'):
-                self.inputInitialList[self.inputInitialIndex] = ord(' ')
-            #end if
-        #end if
-            
-        if key == pg.K_DOWN:
-            self.inputInitialList[self.inputInitialIndex] -= 1
-            
-            if self.inputInitialList[self.inputInitialIndex] < ord(' '):
-                self.inputInitialList[self.inputInitialIndex] = ord('Z')
-            #end if
-        #end if
-                
-        if key == pg.K_LEFT:
-            self.inputInitials[self.inputInitialIndex].visible = True
-            self.inputInitialIndex -= 1
-            
-            if self.inputInitialIndex < 0:
-                self.inputInitialIndex = 2
-            #end if
-        #end if
-                
-        if key == pg.K_RIGHT:
-            self.inputInitials[self.inputInitialIndex].visible = True
-            self.inputInitialIndex += 1
-            
-            if self.inputInitialIndex > 2:
-                self.inputInitialIndex = 0
-            #end if
-        #end if
-                
-        if key == pg.K_RETURN:
-            self.playerIndex += 1
-            
-            if self.playerIndex > 2:
-                self.exitCode = GAMESTATE_MENU
-            #end if
-        #end if
-        
-        return
-    #end onKeyPressed
 #end HighScoreState
 
 class Frogger(Game):
     def __init__(self) -> None:
         super().__init__("Frogger",[800,600])
         
-        self.scoreNames: list[str] = list()
-        self.scoreNums: list[str] = list()
-        
-        with open('data/FroggerHighScore.txt','r') as scoreFile:
-            for row in scoreFile:
-                row = row.split()
-                self.scoreNames.append(row[0])
-                self.scoreNums.append(row[1])
-            #end for
-        #end with
-        
         self.menuState: GameState = Menu()
         self.playState: GameState = Play()
-        self.highScoreState: GameState = HighScoreState(self.scoreNames, self.scoreNums)
+        self.highScoreState: GameState = HighScoreState()
         
-        self.switchState(self.highScoreState)
+        self.switchState(self.menuState)
         
         return
     #end __init__
@@ -2122,18 +1934,7 @@ class Frogger(Game):
             self.menuState.reset()
             self.switchState(self.menuState)
         elif self.state.exitCode == GAMESTATE_HIGH_SCORE:
-            p1Score: int = 0
-            p2Score: int = 0
-            
-            if isinstance(self.state, Play):
-                p1Score = self.state.header.numScore
-                p2Score = self.state.header.numScore2
-            #end if
-                
             self.switchState(self.highScoreState)
-            self.state.scoreNames = self.scoreNames
-            self.state.scoreNums = self.scoreNums
-            self.state.player1Score = p1Score
         #end if
         
         return
