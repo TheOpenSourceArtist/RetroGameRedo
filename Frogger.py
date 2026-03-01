@@ -1999,10 +1999,18 @@ class HighScoreState(GameState):
     def onKeyPressed(self, key: int) -> None:
         if key == pg.K_UP:
             self.playerInitials[self.playerInitialIndex] += 1
+            
+            if self.playerInitials[self.playerInitialIndex] > ord('~'):
+                self.playerInitials[self.playerInitialIndex] = ord(' ')
+            #end if
         #end if
 
         if key == pg.K_DOWN:
             self.playerInitials[self.playerInitialIndex] -= 1
+            
+            if self.playerInitials[self.playerInitialIndex] < ord(' '):
+                self.playerInitials[self.playerInitialIndex] = ord('~')
+            #end if
         #end if
 
         if key == pg.K_LEFT:
