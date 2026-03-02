@@ -1939,7 +1939,7 @@ class HighScoreState(GameState):
         self.playerScoreNames: list[str] = ['AAA','AAA']
         self.playerScoreNums: list[int] = [0,0]
         self.numPlayerScores: int = 0
-        self.playerIndex: int = 1
+        self.playerIndex: int = 0
 
         self.lblPlayerScoreNum: Entity = Entity()
         self.lblPlayerScoreNum.img = self.font.render(
@@ -1964,6 +1964,9 @@ class HighScoreState(GameState):
             )
             self.lblPlayerInitials[x].rect = self.lblPlayerInitials[x].img.get_rect().move(115 + (x * 13),250)
         #end for
+
+        self.tmrPlayerInitialBlink: int = 200
+        self.tmrPlayerInitialDelta: int = 0
             
         self.entities.append(self.lblHighScores)
         self.entities.extend(self.lblHighScoreRanks)
@@ -1977,6 +1980,11 @@ class HighScoreState(GameState):
     #end __init__
 
     def update(self, deltaTime: float) -> None:
+        #update Player Score Label:
+        self.lblPlayerScoreName.img = self.font.render(
+            "Player %d Initials: " % (self.playerIndex + 1), False, (255,255,255)
+        )
+        
         #update Player Score Labels
         self.lblPlayerScoreNum.img = self.font.render(
             "Player %d Score: %s" % (self.playerIndex + 1, format(self.playerScoreNums[self.playerIndex],'0=4d'))
@@ -1990,6 +1998,36 @@ class HighScoreState(GameState):
             )
             self.lblPlayerInitials[x].rect = self.lblPlayerInitials[x].img.get_rect().move(115 + (x * 13),250)
         #end for
+
+        #hide or show player score labels
+        if self.numPlayerScores > 0 and self.numPlayerScores < 3:
+            self.lblPlayerScoreNum.visible = True
+            self.lblPlayerScoreName.visible = True
+
+            self.tmrPlayerInitialDelta += deltaTime
+
+            for i in range(3):
+                if i == self.playerInitialIndex:
+                    if self.tmrPlayerInitialDelta >= self.tmrPlayerInitialBlink:
+                        self.tmrPlayerInitialDelta = 0
+
+                        if self.lblPlayerInitials[self.playerInitialIndex].visible == True:
+                            self.lblPlayerInitials[self.playerInitialIndex].visible = False
+                        else:
+                            self.lblPlayerInitials[self.playerInitialIndex].visible = True
+                        #end if
+                    #end if
+                else:
+                    self.lblPlayerInitials[i].visible = True
+                #end if
+        else:
+            self.lblPlayerScoreNum.visible = False
+            self.lblPlayerScoreName.visible = False
+
+            for i in range(3):
+                self.lblPlayerInitials[i].visible = False
+            #end for
+        #end if
 
         super().update(deltaTime)
 
@@ -2006,6 +2044,7 @@ class HighScoreState(GameState):
         #end if
 
         if key == pg.K_LEFT:
+            self.lblPlayerInitials[self.playerInitialIndex].visible = True
             self.playerInitialIndex -= 1
 
             if self.playerInitialIndex < 0:
@@ -2014,6 +2053,7 @@ class HighScoreState(GameState):
         #end if
 
         if key == pg.K_RIGHT:
+            self.lblPlayerInitials[self.playerInitialIndex].visible = True
             self.playerInitialIndex += 1
 
             if self.playerInitialIndex > 2:
@@ -2021,8 +2061,51 @@ class HighScoreState(GameState):
             #end if
         #end if
 
+        if key == pg.K_RETURN:
+            self.playerIndex += 1
+
+            if self.playerIndex >= self.numPlayerScores:
+                self.playerIndex = 0
+                self.exitCode = GAMESTATE_MENU
+            #end if
+
+            self.playerInitials = [ord('A'),ord('A'),ord('A')]
+            self.playerInitialIndex = 0
+
         return
     #end onKeyPressed
+
+    def onStateEnter(self) -> None:
+        super().onStateEnter()
+
+        self.playerInitials = [ord('A'),ord('A'),ord('A')]
+        self.playerInitialIndex = 0
+        self.numPlayerScores = 0
+        
+        return
+    #end onStateEnter
+
+    def comparePlayerScores(self, playerScores: list[int]) -> None:
+        self.numPlayerScores = 0
+        self.playerIndex = 0
+        self.playerScoreNums = list(playerScores)
+        rank = None
+        
+        for score in playerScores:
+            rank = 0
+            for highScore in self.highScoreNums:
+                if score > highScore:
+                    self.numPlayerScores += 1
+                    print(rank)
+                    break
+                #end if
+                
+                rank += 1
+            #end for
+        #end for
+
+        return
+    #end comparePlayerScores
 #end HighScoreState
 
 class Frogger(Game):
@@ -2055,8 +2138,23 @@ class Frogger(Game):
             self.menuState.reset()
             self.switchState(self.menuState)
         elif self.state.exitCode == GAMESTATE_HIGH_SCORE:
+            #if the last state was the play state, get the player scores
+            numPlayers: int = 0
+            p1Score: int = 0
+            p2Score: int = 0
+            
+            if isinstance(self.state, Play):
+                numPlayers = self.state.numPlayers
+                p1Score = self.state.header.numScore
+                p2Score = self.state.header.numScore2
+            #end if
+            
             self.switchState(self.highScoreState)
-            self.state.playerScoreNums = [57,23]
+            self.state.playerScoreNums = [p1Score, p2Score]
+            self.state.numPlayerScores = numPlayers
+            self.state.playerIndex = 0
+
+            self.state.comparePlayerScores([17, 0])
         #end if
         
         return
