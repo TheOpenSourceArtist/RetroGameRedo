@@ -1045,6 +1045,7 @@ class Play(GameState):
         self.header.reset()
         self.frog.spawn()
         self.frog2.spawn()
+        self.gayFrogs.reset()
         
         if self.numPlayers == 2:
             self.frog2.active = True
@@ -2124,20 +2125,40 @@ class HighScoreState(GameState):
         self.playerIndex = 0
         self.playerScoreNums = list(playerScores)
         rank = None
-        self.playerRanks = []
+        self.playerRanks = [None, None]
+        tempHighScores: list[int] = list(self.highScoreNums)
         
-        for score in playerScores:
+#         for score in playerScores:
+#             rank = 0
+#             for highScore in self.highScoreNums:
+#                 if score > highScore:
+#                     self.numPlayerScores += 1
+#                     self.playerRanks.append(rank)
+#                     break
+#                 #end if
+#                 
+#                 rank += 1
+#             #end for
+#         #end for
+                
+        for i in range(2):
             rank = 0
-            for highScore in self.highScoreNums:
-                if score > highScore:
+            for highScore in tempHighScores:
+                if playerScores[i] > highScore:
                     self.numPlayerScores += 1
-                    self.playerRanks.append(rank)
+                    self.playerRanks[i] = rank
+                    tempHighScores.insert(rank, playerScores[i])
                     break
                 #end if
                 
                 rank += 1
             #end for
         #end for
+                
+        if self.playerRanks[0] == None and self.playerRanks[1] != None:
+            self.numPlayers = 1
+            self.playerIndex = 1
+        #end if
 
         return
     #end comparePlayerScores
