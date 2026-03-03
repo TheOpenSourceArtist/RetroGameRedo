@@ -1965,6 +1965,8 @@ class HighScoreState(GameState):
             self.lblPlayerInitials[x].rect = self.lblPlayerInitials[x].img.get_rect().move(115 + (x * 13),250)
         #end for
 
+        self.playerRanks: list[int] = [None, None]
+
         self.tmrPlayerInitialBlink: int = 200
         self.tmrPlayerInitialDelta: int = 0
             
@@ -2070,7 +2072,31 @@ class HighScoreState(GameState):
         #end if
 
         if key == pg.K_RETURN:
-            self.playerIndex += 1
+            if self.numPlayerScores > 0:
+                self.highScoreNums.insert(self.playerRanks[self.playerIndex],self.playerScoreNums[self.playerIndex])
+                self.highScoreNums = self.highScoreNums[:self.numHighScores]
+                self.highScoreNames.insert(self.playerRanks[self.playerIndex], ''.join([chr(x) for x in self.playerInitials]))
+                self.highScoreNames = self.highScoreNames[:self.numHighScores]
+
+                for i in range(self.numHighScores):
+                    self.lblHighScoreRanks[i].img = self.font.render("%d. " % (i + 1), False, (255,255,255))
+                    self.lblHighScoreRanks[i].rect = self.lblHighScoreRanks[i].img.get_rect().move(20,20 * (i + 1))
+                    
+                    self.lblHighScoreNames[i].img = self.font.render("%s" % (self.highScoreNames[i]), False, (255,255,255))
+                    self.lblHighScoreNames[i].rect = self.lblHighScoreNames[i].img.get_rect().move(40,20 * (i + 1))
+
+                    self.lblHighScoreNums[i].img = self.font.render("%s" % (format(self.highScoreNums[i],'0=4d')), False, (255,255,255))
+                    self.lblHighScoreNums[i].rect = self.lblHighScoreNums[i].img.get_rect().move(100,20 * (i + 1))
+                #end for
+
+                with open('data/FroggerHighScore.txt','w') as highScoreFile:
+                    for i in range(self.numHighScores):
+                        highScoreFile.write('%s %s\n' % (self.highScoreNames[i], format(self.highScoreNums[i],'0=4d')))
+                    #end for
+                #end with
+                    
+                self.playerIndex += 1
+            #end if
 
             if self.playerIndex >= self.numPlayerScores:
                 self.playerIndex = 0
@@ -2098,13 +2124,14 @@ class HighScoreState(GameState):
         self.playerIndex = 0
         self.playerScoreNums = list(playerScores)
         rank = None
+        self.playerRanks = []
         
         for score in playerScores:
             rank = 0
             for highScore in self.highScoreNums:
                 if score > highScore:
                     self.numPlayerScores += 1
-                    print(rank)
+                    self.playerRanks.append(rank)
                     break
                 #end if
                 
@@ -2158,11 +2185,11 @@ class Frogger(Game):
             #end if
             
             self.switchState(self.highScoreState)
-            self.state.playerScoreNums = [p1Score, p2Score]
-            self.state.numPlayerScores = numPlayers
-            self.state.playerIndex = 0
+##            self.state.playerScoreNums = [p1Score, p2Score]
+##            self.state.numPlayerScores = numPlayers
+##            self.state.playerIndex = 0
 
-            self.state.comparePlayerScores([17, 0])
+            self.state.comparePlayerScores([p1Score, p2Score])
         #end if
         
         return
