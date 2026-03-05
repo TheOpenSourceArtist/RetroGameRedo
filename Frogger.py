@@ -902,6 +902,8 @@ class Menu(GameState):
             ,self.highScore.rect
         ]
         self.selectorRectNum: int = 0
+
+        self.mscFrogSong: pg.mixer.Sound = pg.mixer.Sound('sfx/BigFatFrog.mp3')
         
         self.entities.append(self.tileBG)
         self.entities.append(self.logo)
@@ -927,9 +929,19 @@ class Menu(GameState):
         self.player1.rect = self.selectorRects[0]
         self.player2.rect = self.selectorRects[1]
         self.highScore.rect = self.selectorRects[2]
+
+        self.mscFrogSong.play()
         
         return
     #endonStateEnter
+
+    def onStateExit(self) -> None:
+        super().onStateExit()
+
+        self.mscFrogSong.stop()
+
+        return
+    #end onStateExit
     
     def update(self, deltaTime:float) -> None:
         super().update(deltaTime)
@@ -1019,6 +1031,9 @@ class Play(GameState):
         self.bloodSport2: BloodSport = BloodSport()
         self.bloodSport2.rect.x = -1000
         self.bloodSport2.active = False
+
+        self.sfxJump: pg.mixer.Sound = pg.mixer.Sound('sfx/FroggerJump.wav')
+        self.sfxJump2: pg.mixer.Sound = pg.mixer.Sound('sfx/FroggerJump2.wav')
         
         self.entities.append(self.bg)
         self.entities.append(self.riverRow1)
@@ -1069,6 +1084,7 @@ class Play(GameState):
     def onKeyPressed(self, key: int) -> None:
         if self.frog.active:
             if key == pg.K_RIGHT:
+                self.sfxJump.play()
                 self.frog.state = 3
                 self.frog.rect.x += self.frog.speed
                 
@@ -1078,6 +1094,7 @@ class Play(GameState):
             #end if
             
             if key == pg.K_LEFT:
+                self.sfxJump.play()
                 self.frog.state = 1
                 self.frog.rect.x -= self.frog.speed
                 
@@ -1087,6 +1104,7 @@ class Play(GameState):
             #end if
                 
             if key == pg.K_UP:
+                self.sfxJump.play()
                 self.frog.state = 0
                 self.frog.rect.y -= self.frog.speed
                 
@@ -1096,6 +1114,7 @@ class Play(GameState):
             #end if
                 
             if key == pg.K_DOWN:
+                self.sfxJump.play()
                 self.frog.state = 2
                 self.frog.rect.y += self.frog.speed
                 
@@ -1115,6 +1134,7 @@ class Play(GameState):
         if self.numPlayers == 2:
             if self.frog2.active:
                 if key == pg.K_w:
+                    self.sfxJump2.play()
                     self.frog2.state = 0
                     self.frog2.rect.y -= self.frog2.speed
                     
@@ -1124,6 +1144,7 @@ class Play(GameState):
                 #end if
                         
                 if key == pg.K_s:
+                    self.sfxJump2.play()
                     self.frog2.state = 2
                     self.frog2.rect.y += self.frog2.speed
                     
@@ -1133,6 +1154,7 @@ class Play(GameState):
                 #end if
                         
                 if key == pg.K_a:
+                    self.sfxJump2.play()
                     self.frog2.state = 1
                     self.frog2.rect.x -= self.frog2.speed
                     
@@ -1142,6 +1164,7 @@ class Play(GameState):
                 #end if
                         
                 if key == pg.K_d:
+                    self.sfxJump2.play()
                     self.frog2.state = 3
                     self.frog2.rect.x += self.frog2.speed
                     
