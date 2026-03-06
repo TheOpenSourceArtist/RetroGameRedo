@@ -1,6 +1,6 @@
 from SimplerGE import *
 from random import choices, choice, randint
-from PIL import Image
+##from PIL import Image
 
 GAMESTATE_MENU: int = 10
 GAMESTATE_PLAY_1P: int = 1
