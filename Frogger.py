@@ -904,6 +904,11 @@ class Menu(GameState):
         self.selectorRectNum: int = 0
 
         self.mscFrogSong: pg.mixer.Sound = pg.mixer.Sound('sfx/BigFatFrog.mp3')
+        self.raveLights: Entity = Entity(pg.Rect(0,0,400,300),pg.surface.Surface((400,300), pg.SRCALPHA))
+        self.raveLights.img.fill((randint(0,255),randint(0,255),randint(0,255), 100))
+        self.raveTimer: int = 125
+        self.raveTimeDelta: int = 0
+        self.raveLights.visible = False
         
         self.entities.append(self.tileBG)
         self.entities.append(self.logo)
@@ -911,6 +916,7 @@ class Menu(GameState):
         self.entities.append(self.player2)
         self.entities.append(self.highScore)
         self.entities.append(self.selector)
+        self.entities.append(self.raveLights)
         
         return
     #end __init__
@@ -946,6 +952,13 @@ class Menu(GameState):
     def update(self, deltaTime:float) -> None:
         super().update(deltaTime)
         self.selector.rect = self.selectorRects[self.selectorRectNum]
+
+        self.raveTimeDelta += deltaTime
+
+        if self.raveTimeDelta >= self.raveTimer:
+            self.raveTimeDelta = 0
+            self.raveLights.img.fill((randint(0,255),randint(0,255),randint(0,255), 100))
+        #end if
         
         return
     #end update
@@ -963,6 +976,12 @@ class Menu(GameState):
                 #end if
                     
                 self.selector.rect = self.selectorRects[self.selectorRectNum]
+            elif key == pg.K_r:
+                if self.raveLights.visible == False:
+                    self.raveLights.visible = True
+                else:
+                    self.raveLights.visible = False
+                #end if
             #end if        
         
         return
