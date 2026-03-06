@@ -46,7 +46,7 @@ class Snake (RGBSurface):
 
         return 
 
-    def update(self, deltaTime):
+    def update (self, deltaTime):
         self.moveTimePast += deltaTime
 
         if self.moveTimePast >= self.moveTimer:
@@ -66,7 +66,7 @@ class Snake (RGBSurface):
         return
     #end update 
 
-    def render(self, renderBuffer) -> None:
+    def render (self, renderBuffer) -> None:
         for position in self.bodyPosition:
             renderBuffer.blit(self.img, position)
         return
@@ -90,7 +90,7 @@ class Fruit (RGBSurface):
         return
 #end Fruit class 
 
-class SnakeState(GameState):
+class SnakeState (GameState):
     def __init__(self) -> None:
         super().__init__()
         
@@ -100,7 +100,7 @@ class SnakeState(GameState):
         return
     #end __init__
 
-    def update(self):
+    def update (self):
         #Snake Movements
         if self.keysDown [pg.K_RIGHT]:
             if self.Snake.previousDirection != left:
@@ -178,13 +178,66 @@ class SnakeState(GameState):
         return 
 #end SnakeState
 
+class MenuState (GameState):
+    def __init__ (self) -> None:
+        super().__init__()
+        self.titleFont = pg.font.Font(None, 70)
+        self.startFont = pg.font.Font(None, 40)
+
+        return
+        #end __init__
+
+    def update (self):
+        if self.keysDown[pg.K_RETURN]:
+            self.transitionState = SnakeState()
+            self.exitCode = 1
+
+        return 
+        #end update
+
+    def render (self):
+        self.renderBuffer.fill((20,20,50))
+        self.titleText = self.titleFont.render("SNAKE", True, (255,255,255))
+        self.playText = self.startFont.render("Press ENTER to play", True, (255,255,255))
+        self.renderBuffer.blit(self.titleText, (250,250))
+        #self.renderBuffer.blit(self.titleFont, (230, 200))
+        self.renderBuffer.blit(self.playText, (270, 350))
+
+        pg.display.flip()
+
+        return
+        #end render
+
+#end MenuState
+
+class SnakeGame (Game):
+
+    def __init__ (self) -> None:
+        super().__init__(name = 'Snake', displaySize = [800,600])
+        self.menuState = MenuState()
+        self.playState = SnakeState()
+        self.switchState (self.menuState)
+        
+
+        return
+
+    def update (self):
+        super().update()
+        if self._state.exitCode == 1:
+            self.switchState(self.playState)
+
+        return
+
+    def render (self):
+        super().render()
+
+        return 
+
+
+    #end SnakeGame
 
 def main() -> None:
-    myGame: Game = Game(
-                name = 'Snake'
-                ,displaySize = [800,600]
-                ,initialState = SnakeState()
-        )
+    myGame: Game = SnakeGame()
         
     myGame.run()
 
