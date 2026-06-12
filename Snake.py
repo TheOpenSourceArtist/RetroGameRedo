@@ -13,7 +13,9 @@ livesFont = pg.font.Font(None, 36)
 gamePaused = False
 mainMenuState = 1
 playingState = 2
-scoringState = 3 
+scoringState = 3
+grassBackground = pg.image.load('gfx/snakeGrass.png')
+menuGraphic = pg.image.load('gfx/snakeMenuGraphic.png')
 
 #Creating a Snake
 class Snake (RGBSurface):
@@ -176,18 +178,19 @@ class SnakeState (GameState):
     #end update 
 
     def render (self):
-        self.renderBuffer.fill((0,0,0))
+        self.renderBuffer.blit(grassBackground, (0, 0))
         self.Snake.render(self.renderBuffer)
         self.Fruit.render(self.renderBuffer)
         scoreSurf = highScoreFont.render(f"Score: {self.playerScores}", True, (100, 255, 255))
         livesSurf = livesFont.render(f"Lives: {self.Snake.lives}", True, (100, 255, 255))
         self.renderBuffer.blit(scoreSurf, (675, 10))
         self.renderBuffer.blit(livesSurf, (675, 35))
+    
         if gamePaused:
             self.exitCode = scoringState
+            self.renderBuffer.blit(grassBackground, (0, 0))
             self.highScoreText = self.highScoreFont.render("Current High Score: %d" %(self.playerScores), True, (255, 255, 255))
-            self.renderBuffer.blit(highScoreFont.render("Current High Score: %d" %(self.playerScores), True, (255,255,255)), ((100,100), (200,300)))
-            self.renderBuffer.fill((22,4,75))
+            #self.renderBuffer.blit(highScoreFont.render("Current High Score: %d" %(self.playerScores), True, (255,255,255)), ((100,100), (200,300)))
             self.renderBuffer.blit(gameOverFont.render("Press SPACE to play again." , False, (255,255,255)), ((100,200), (200,300)))
             self.renderBuffer.blit(self.highScoreText, (285,300))
             pg.display.flip()
@@ -215,11 +218,11 @@ class MenuState (GameState):
         #end update
 
     def render (self):
-        self.renderBuffer.fill((20,20,50))
-        self.titleText = self.titleFont.render("SNAKE", True, (255,255,255))
-        self.playText = self.startFont.render("Press ENTER to play", True, (255,255,255))
-        self.renderBuffer.blit(self.titleText, (285,300))
-        self.renderBuffer.blit(self.playText, (250, 400))
+        self.renderBuffer.blit(menuGraphic, (0, 0))
+        #self.titleText = self.titleFont.render("SNAKE", True, (255,255,255))
+        #self.playText = self.startFont.render("Press ENTER to play", True, (255,255,255))
+        #self.renderBuffer.blit(self.titleText, (285,300))
+        #self.renderBuffer.blit(self.playText, (250, 400))
         pg.display.flip()
 
         return
@@ -250,6 +253,7 @@ class highScoreState (GameState):
             self.previousScore = self.playerScores
             with open('data/SnakeHighScore.txt', 'w') as highScores:
                 highScores.write(str(self.playerScores))
+        return
             
     def update (self):
         super().update()
@@ -271,6 +275,7 @@ class highScoreState (GameState):
 
     def render (self):
         super().render()
+        self.renderBuffer.blit(grassBackground, (0, 0))
         self.highScoreText = self.highScoreFont.render("Current High Score: %d" %(self.playerScores), True, (255, 255, 255))
         self.renderBuffer.blit(self.highScoreText, (285,300))
         pg.display.flip()
